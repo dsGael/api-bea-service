@@ -1,0 +1,843 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model asignacion_diaria {
+  idAsignacion    String    @id @db.VarChar(50)
+  FOLIO           Int?
+  FECHA           DateTime? @db.Date
+  LINEA           Int?
+  JORNADA         Int?
+  UNIDAD          String?   @db.VarChar(50)
+  OPERADOR        String?   @db.VarChar(50)
+  NOMBRE_COMPLETO String?   @map("NOMBRE COMPLETO") @db.VarChar(50)
+  HORA_SALIDA     DateTime? @map("HORA SALIDA") @db.Time(6)
+}
+
+model bin_ticket {
+  idticket                 String                @id(map: "bin_ticket_pk") @db.VarChar(50)
+  fecha                    DateTime?             @db.Date
+  fechahora                DateTime?             @db.Timestamp(6)
+  tiporeparacion           String?               @db.VarChar(50)
+  folio                    String                @unique(map: "bin_ticket_unique") @db.VarChar(50)
+  idautobus                String?               @db.VarChar(50)
+  numeroeconomico          String?               @db.VarChar(50)
+  idruta                   String?               @db.VarChar(50)
+  idoperador               String?               @db.VarChar(50)
+  nombreoperador           String?               @db.VarChar(50)
+  idusuario                String?               @db.VarChar(50)
+  idreporta                String?               @db.VarChar(50)
+  iddispositivo            String?               @db.VarChar(50)
+  iddispositivot           String?               @db.VarChar(50)
+  idfalla                  String?               @db.VarChar(50)
+  idcategoria              String?               @db.VarChar(50)
+  idprioridad              String?               @db.VarChar(50)
+  idestado                 String?               @db.VarChar(50)
+  idtecnico                String?               @db.VarChar(50)
+  comentarios              String?
+  areatrabajo              String?               @db.VarChar(50)
+  fecharesolucion          DateTime?             @db.Timestamp(6)
+  creadopor                String?               @db.VarChar(80)
+  fechacreacion            DateTime?             @db.Timestamp(6)
+  modificadopor            String?               @db.VarChar(50)
+  fechamodificacion        DateTime?             @db.Timestamp(6)
+  estatusrep               String?               @db.VarChar(50)
+  msjenviado               String?               @db.VarChar(50)
+  foliocliente             String?               @db.VarChar(50)
+  reasignado               String?               @db.VarChar(50)
+  bloque                   String?               @db.VarChar(50)
+  locacion                 String?               @db.VarChar(50)
+  alias                    String?               @db.VarChar(50)
+  descripcion              String?
+  fechareportecliente      DateTime?             @db.Timestamp(6)
+  fechatecnico             DateTime?             @db.Timestamp(6)
+  fechamesa                DateTime?             @db.Timestamp(6)
+  tiempototal              String?               @db.VarChar(50)
+  tiemporetardounidad      String?               @db.VarChar(50)
+  imagenfalla1             String?
+  imagenfalla2             String?
+  imagenfalla3             String?
+  video                    String?
+  fechacat                 DateTime?             @db.Date
+  folionumerocliente       String?               @db.VarChar(50)
+  confirmarnuevaincidencia String?               @db.VarChar(255)
+  alertafoliosabiertos     String?               @db.VarChar(50)
+  resetbot                 String?               @db.VarChar(50)
+  check_in                 DateTime?             @db.Timestamp(6)
+  cat_autobus              cat_autobus?          @relation(fields: [idautobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_autobus")
+  cat_categoria            cat_categoria?        @relation(fields: [idcategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_categoria")
+  cat_dispositivo          cat_dispositivo?      @relation(fields: [iddispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo")
+  cat_dispositivo_t        cat_dispositivo_t?    @relation(fields: [iddispositivot], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo_t")
+  cat_estado_r             cat_estado_r?         @relation(fields: [idestado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_estado")
+  cat_falla                cat_falla?            @relation(fields: [idfalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_falla")
+  cat_prioridad            cat_prioridad?        @relation(fields: [idprioridad], references: [idPrioridad], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_prioridad")
+  cat_reporta              cat_reporta?          @relation(fields: [idreporta], references: [idReporta], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_reporta")
+  cat_ruta                 cat_ruta?             @relation(fields: [idruta], references: [idRuta], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_ruta")
+  cat_tecnicos             cat_tecnicos?         @relation(fields: [idtecnico], references: [idTecnico], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_tecnico")
+  cat_tipo_reparacion      cat_tipo_reparacion?  @relation(fields: [tiporeparacion], references: [idtipoReparacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_tipo_reparacion")
+  solicitud_refaccion      solicitud_refaccion[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bin_ticket_detail {
+  idDetalle         String?            @db.VarChar(50)
+  idTicket          String?            @db.VarChar(50)
+  fechaHora         DateTime?          @db.Timestamp(6)
+  folio             String?            @db.VarChar(50)
+  idAutobus         String?            @db.VarChar(50)
+  numeroeconomico   String?            @db.VarChar(50)
+  idRuta            String?            @db.VarChar(50)
+  idUsuario         String?            @db.VarChar(50)
+  idDispositivo     String?            @db.VarChar(50)
+  idDispositivoT    String?            @db.VarChar(50)
+  idFalla           String?            @db.VarChar(50)
+  idCategoria       String?            @db.VarChar(50)
+  idPrioridad       String?            @db.VarChar(50)
+  idEstado          String?            @db.VarChar(50)
+  idTecnico         String?            @db.VarChar(50)
+  Diagnostico       String?
+  Reparacion        String?
+  comentarios       String?
+  areatrabajo       String?            @db.VarChar(50)
+  imagen1           String?
+  imagen2           String?
+  imagen3           String?
+  video             String?
+  fechaResolucion   DateTime?          @db.Timestamp(6)
+  creadoPor         String?            @db.VarChar(50)
+  fechaCreacion     DateTime?          @db.Timestamp(6)
+  modificadoPor     String?            @db.VarChar(50)
+  fechaModificacion DateTime?          @db.Timestamp(6)
+  GpsInicial        String?            @db.VarChar(50)
+  gpsModifica       String?            @db.VarChar(50)
+  cat_autobus       cat_autobus?       @relation(fields: [idAutobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_autobus")
+  cat_categoria     cat_categoria?     @relation(fields: [idCategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_categoria")
+  cat_dispositivo   cat_dispositivo?   @relation(fields: [idDispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_dispositivo")
+  cat_dispositivo_t cat_dispositivo_t? @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_dispositivo_t")
+  cat_estado_r      cat_estado_r?      @relation(fields: [idEstado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_estado")
+  cat_falla         cat_falla?         @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_falla")
+  cat_tecnicos      cat_tecnicos?      @relation(fields: [modificadoPor], references: [idTecnico], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_modificado_por")
+  cat_prioridad     cat_prioridad?     @relation(fields: [idPrioridad], references: [idPrioridad], onDelete: NoAction, onUpdate: NoAction, map: "fk_detail_prioridad")
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model buscar_conductor {
+  nombre          String? @db.VarChar(50)
+  Apellidomaterno String? @db.VarChar(50)
+  Apellidopaterno String? @db.VarChar(50)
+
+  @@ignore
+}
+
+model campa_a {
+  idRegistroCampa_a String        @id @map("idRegistroCampaña") @db.VarChar(50)
+  fechaHora         DateTime?     @db.Timestamp(6)
+  idAutobus         String?       @db.VarChar(50)
+  idRuta            String?       @db.VarChar(50)
+  numeroEconomico   String?       @db.VarChar(50)
+  reparacion        String?       @db.VarChar(50)
+  idFalla           String?       @db.VarChar(50)
+  idTecnico         String?       @db.VarChar(50)
+  idEstado          String?       @db.VarChar(50)
+  cat_autobus       cat_autobus?  @relation(fields: [idAutobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_autobus")
+  cat_estado_r      cat_estado_r? @relation(fields: [idEstado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_estado_r")
+  cat_falla         cat_falla?    @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_falla")
+  cat_ruta          cat_ruta?     @relation(fields: [idRuta], references: [idRuta], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_ruta")
+  cat_tecnicos      cat_tecnicos? @relation(fields: [idTecnico], references: [idTecnico], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_tecnico")
+
+  @@map("campaña")
+}
+
+model cat_almacen {
+  idAlmacen                                                   String           @id @db.VarChar(50)
+  nombre                                                      String?          @db.VarChar(50)
+  ubicacion                                                   String?          @db.VarChar(50)
+  responsable                                                 String?          @db.VarChar(50)
+  creadoPor                                                   String?          @db.VarChar(50)
+  fechaCreacion                                               DateTime?        @db.Timestamp(6)
+  modificadoPor                                               String?          @db.VarChar(50)
+  fechaModificacion                                           DateTime?        @db.Timestamp(6)
+  rel_movimiento_rel_movimiento_idAlmacenDestinoTocat_almacen rel_movimiento[] @relation("rel_movimiento_idAlmacenDestinoTocat_almacen")
+  rel_movimiento_rel_movimiento_idAlmacenOrigenTocat_almacen  rel_movimiento[] @relation("rel_movimiento_idAlmacenOrigenTocat_almacen")
+}
+
+model cat_autobus {
+  idAutobus         String              @id @db.VarChar(50)
+  numeroEconomico   String?             @db.VarChar(50)
+  idRuta            String?             @db.VarChar(50)
+  numeroSerie       String?             @db.VarChar(50)
+  numeroPuertas     String?             @db.VarChar(50)
+  idCarroceria      String?             @db.VarChar(50)
+  idEstadoA         String?             @db.VarChar(50)
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     String?             @db.VarChar(255)
+  fechaInstalacion  String?             @db.VarChar(255)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion String?             @db.VarChar(255)
+  rutaCelular       String?             @db.VarChar(20)
+  noCelular         String?             @db.VarChar(20)
+  has_nfc           Boolean
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+  campa_a           campa_a[]
+  cat_carroceria    cat_carroceria?     @relation(fields: [idCarroceria], references: [idCarroceria], onDelete: NoAction, onUpdate: NoAction, map: "fk_autobus_carroceria")
+  cat_estado_a      cat_estado_a?       @relation(fields: [idEstadoA], references: [idEstadoA], onDelete: NoAction, onUpdate: NoAction, map: "fk_autobus_estado_a")
+  cat_ruta          cat_ruta?           @relation(fields: [idRuta], references: [idRuta], onDelete: NoAction, onUpdate: NoAction, map: "fk_autobus_ruta")
+}
+
+model cat_carroceria {
+  idCarroceria      String        @id @db.VarChar(50)
+  nombre            String?       @db.VarChar(50)
+  marca             String?       @db.VarChar(50)
+  creadoPor         String?       @db.VarChar(100)
+  fechaCreacion     DateTime?     @db.Timestamp(6)
+  modificadoPor     String?       @db.VarChar(50)
+  fechaModificacion String?       @db.VarChar(50)
+  cat_autobus       cat_autobus[]
+}
+
+model cat_categoria {
+  idCategoria       String              @id @db.VarChar(50)
+  nombre            String?             @db.VarChar(50)
+  descripcion       String?
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     DateTime?           @db.Timestamp(6)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion String?             @db.VarChar(50)
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+}
+
+model cat_celular {
+  idCelular   String  @id @db.VarChar(50)
+  noEconomico String? @db.VarChar(50)
+  LINEA       String? @db.VarChar(20)
+  telefono    String? @db.VarChar(20)
+}
+
+model cat_ciudad {
+  idCiudad          String    @id @db.VarChar(50)
+  nombre            String?   @db.VarChar(50)
+  idEstado          Int?      @db.SmallInt
+  creadoPor         String?   @db.VarChar(50)
+  fechaCreacion     DateTime? @db.Timestamp(6)
+  modificadoPor     String?   @db.VarChar(50)
+  fechaModificacion String?   @db.VarChar(50)
+}
+
+model cat_departamentos {
+  idDepartamento String  @id @db.VarChar(50)
+  Departamento   String? @db.VarChar(50)
+  Descripcion    String? @db.VarChar(50)
+}
+
+model cat_diagnostico {
+  idDiagnostico         String             @id @db.VarChar(50)
+  idDispositivoT        String?            @db.VarChar(50)
+  idFalla               String?            @db.VarChar(50)
+  nombreDispositivo     String?            @db.VarChar(50)
+  fallaNombre           String?            @db.VarChar(50)
+  diagnostico           String?
+  reparacion            String?
+  tiempoReparacionHoras Float?             @db.Real
+  creadoPor             String?            @db.VarChar(50)
+  fechaCreacion         DateTime?          @db.Timestamp(6)
+  modificadoPor         String?            @db.VarChar(50)
+  fechaModificacion     String?            @db.VarChar(128)
+  iddispositivo         String?            @db.VarChar(50)
+  idguia                String?            @db.VarChar(50)
+  numeroserie           String?            @db.VarChar(50)
+  celulardvr            String?            @db.VarChar(50)
+  imei1                 String?            @db.VarChar(50)
+  imei2                 String?            @db.VarChar(50)
+  idautobus             String?            @db.VarChar(50)
+  idestadod             String?            @db.VarChar(50)
+  idalmacenactual       String?            @db.VarChar(50)
+  idalmacenanterior     String?            @db.VarChar(50)
+  iddispositivof        String?            @db.VarChar(50)
+  fechainstalacion      String?            @db.VarChar(50)
+  comentarios           String?            @db.VarChar(64)
+  imagen1               String?            @db.VarChar(50)
+  imagen2               String?            @db.VarChar(50)
+  cat_dispositivo_t     cat_dispositivo_t? @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_diagnostico_dispositivo_t")
+  cat_falla             cat_falla?         @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_diagnostico_falla")
+}
+
+model cat_dispositivo {
+  idDispositivo     String              @id @db.VarChar(50)
+  idguia            String?             @db.VarChar(50)
+  idDispositivoT    String?             @db.VarChar(50)
+  numeroSerie       String?             @db.VarChar(255)
+  celularDvr        String?             @db.VarChar(50)
+  imei1             String?             @db.VarChar(50)
+  imei2             String?             @db.VarChar(50)
+  idAutobus         String?             @db.VarChar(50)
+  idEstadoD         String?             @db.VarChar(50)
+  idAlmacenActual   String?             @db.VarChar(50)
+  idAlmacenAnterior String?             @db.VarChar(50)
+  idDispositivoF    String?             @db.VarChar(50)
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     DateTime?           @db.Timestamp(6)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion DateTime?           @db.Timestamp(6)
+  fechaInstalacion  DateTime?           @db.Timestamp(6)
+  comentarios       String?
+  imagen1           String?             @db.VarChar(255)
+  imagen2           String?             @db.VarChar(255)
+  activo            Boolean?
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+}
+
+model cat_dispositivo_t {
+  idDispositivoT      String                @id @db.VarChar(50)
+  nombre              String?               @db.VarChar(50)
+  descripcion         String?               @db.VarChar(64)
+  tipo                String?               @db.VarChar(50)
+  creadoPor           String?               @db.VarChar(50)
+  fechaCreacion       DateTime?             @db.Timestamp(6)
+  modificadoPor       String?               @db.VarChar(50)
+  fechaModificacion   String?               @db.VarChar(50)
+  requiereSerie       Boolean?
+  bin_ticket          bin_ticket[]
+  bin_ticket_detail   bin_ticket_detail[]   @ignore
+  cat_diagnostico     cat_diagnostico[]
+  rel_movimiento      rel_movimiento[]
+  solicitud_refaccion solicitud_refaccion[]
+}
+
+model cat_empresa {
+  idEmpresa         String    @id @db.VarChar(50)
+  nombre            String?   @db.VarChar(50)
+  contaco           String?   @db.VarChar(50)
+  telefono          BigInt?
+  idCiudad          String?   @db.VarChar(50)
+  creadoPor         String?   @db.VarChar(50)
+  fechaCreacion     DateTime? @db.Timestamp(6)
+  modificadoPor     String?   @db.VarChar(50)
+  fechaModificacion DateTime? @db.Timestamp(6)
+}
+
+model cat_estado {
+  idEstado          String    @id @db.VarChar(50)
+  nombre            String?   @db.VarChar(50)
+  creadoPor         String?   @db.VarChar(50)
+  fechaCreacion     DateTime? @db.Timestamp(6)
+  modificadoPor     String?   @db.VarChar(50)
+  fechaModificacion DateTime? @db.Timestamp(6)
+}
+
+model cat_estado_a {
+  idEstadoA         String        @id @db.VarChar(50)
+  nombre            String?       @db.VarChar(50)
+  descripcion       String?
+  creadoPor         String?       @db.VarChar(50)
+  fechaCreacion     DateTime?     @db.Timestamp(6)
+  modificadoPor     String?       @db.VarChar(50)
+  fechaModificacion DateTime?     @db.Timestamp(6)
+  cat_autobus       cat_autobus[]
+}
+
+model cat_estado_d {
+  idEstadoD         String    @id @db.VarChar(50)
+  nombre            String?   @db.VarChar(50)
+  descripcion       String?
+  creadoPor         String?   @db.VarChar(50)
+  fechaCreacion     DateTime? @db.Timestamp(6)
+  modificadoPor     String?   @db.VarChar(50)
+  fechaModificacion DateTime? @db.Timestamp(6)
+}
+
+model cat_estado_r {
+  idEstadoR         String              @id @db.VarChar(50)
+  nombre            String?             @db.VarChar(50)
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     DateTime?           @db.Timestamp(6)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion DateTime?           @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+  campa_a           campa_a[]
+}
+
+model cat_falla {
+  idFalla           String              @id @db.VarChar(50)
+  idDispositivo     String?             @db.VarChar(50)
+  nombre            String?             @db.VarChar(80)
+  falla             String?
+  descripcionFalla  String?
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     DateTime?           @db.Time(6)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion DateTime?           @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+  campa_a           campa_a[]
+  cat_diagnostico   cat_diagnostico[]
+}
+
+model cat_perfiles {
+  idPerfil String  @id @db.VarChar(50)
+  perfil   String? @db.VarChar(50)
+}
+
+model cat_prioridad {
+  idPrioridad       String              @id @db.VarChar(50)
+  nombre            String?             @db.VarChar(50)
+  creadoPor         String?             @db.VarChar(50)
+  fechaCreacion     DateTime?           @db.Timestamp(6)
+  modificadoPor     String?             @db.VarChar(50)
+  fechaModificacion DateTime?           @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+  bin_ticket_detail bin_ticket_detail[] @ignore
+}
+
+model cat_reporta {
+  idReporta         String       @id @db.VarChar(50)
+  nombre            String?      @db.VarChar(50)
+  departamento      String?      @db.VarChar(50)
+  idEmpresa         String?      @db.VarChar(50)
+  email             String?      @db.VarChar(50)
+  telefono          String?      @db.VarChar(50)
+  creadoPor         String?      @db.VarChar(50)
+  fechaCreacion     String?      @db.VarChar(255)
+  modificadoPor     String?      @db.VarChar(50)
+  fechaModificacion DateTime?    @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+}
+
+model cat_ruta {
+  idRuta            String        @id @db.VarChar(50)
+  nombre            String?       @db.VarChar(50)
+  longitud          Float?        @db.Real
+  creadoPor         String?       @db.VarChar(50)
+  fechaCreacion     DateTime?     @db.Timestamp(6)
+  modificadoPor     String?       @db.VarChar(50)
+  fechaModificacion DateTime?     @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+  campa_a           campa_a[]
+  cat_autobus       cat_autobus[]
+}
+
+model cat_sims_dvr {
+  idSimDvr         String  @id @db.VarChar(50)
+  idEmpresa        String? @db.VarChar(50)
+  idAutobus        String? @db.VarChar(50)
+  noSerieDvr       String? @db.VarChar(50)
+  SIM              String? @db.VarChar(255)
+  TEL              String? @db.VarChar(20)
+  fechaInstalacion String? @db.VarChar(50)
+  noControl        Int?
+  comentario       String? @db.VarChar(50)
+}
+
+model cat_sueldos {
+  idSueldo         String  @id @db.VarChar(50)
+  Puesto           String? @db.VarChar(50)
+  SueldoDiario     String? @db.VarChar(50)
+  SueldoHora       String? @db.VarChar(50)
+  HorasPordia      String? @db.VarChar(50)
+  PagoExtraPorHora String? @db.VarChar(50)
+  TipoPago         String? @db.VarChar(50)
+  Comentarios      String?
+}
+
+model cat_tecnicos {
+  idTecnico           String                @id @db.VarChar(50)
+  numeroEmpleado      Int?
+  nombre              String?               @db.VarChar(50)
+  especialidad        String?               @db.VarChar(50)
+  telefono            String?               @db.VarChar(50)
+  idUsuario           String?               @db.VarChar(50)
+  idGeocerca          Int?
+  idHorario           String?               @db.VarChar(50)
+  idSueldo            String?               @db.VarChar(50)
+  creadoPor           String?               @db.VarChar(50)
+  fechaCreacion       String?               @db.VarChar(128)
+  modificadoPor       String?               @db.VarChar(50)
+  fechaModificacion   String?               @db.VarChar(50)
+  foto                String?               @db.VarChar(50)
+  idEmpresa           String?               @db.VarChar(50)
+  idDepartamento      String?               @db.VarChar(50)
+  activo              Boolean?
+  bin_ticket          bin_ticket[]
+  bin_ticket_detail   bin_ticket_detail[]   @ignore
+  campa_a             campa_a[]
+  solicitud_refaccion solicitud_refaccion[]
+}
+
+model cat_tipo_reparacion {
+  idtipoReparacion  String       @id @db.VarChar(50)
+  tipoReparacion    String?      @db.VarChar(50)
+  descripcion       String?
+  creadoPor         String?      @db.VarChar(50)
+  fechaCreacion     DateTime?    @db.Date
+  modificadoPor     String?      @db.VarChar(50)
+  fechaModificacion DateTime?    @db.Timestamp(6)
+  bin_ticket        bin_ticket[]
+}
+
+model cat_ubicacion {
+  idUbicacion       String  @id @db.VarChar(50)
+  codigo            String? @db.VarChar(50)
+  nombre            String? @db.VarChar(50)
+  tipo              String? @db.VarChar(50)
+  creadoPor         String? @db.VarChar(50)
+  fechaCreacion     String? @db.VarChar(50)
+  modificadoPor     String? @db.VarChar(50)
+  fechaModificacion String? @db.VarChar(50)
+}
+
+model cat_usuario {
+  idUsuario         String    @id @db.VarChar(50)
+  idtecnico         String?   @db.VarChar(50)
+  numEmpleado       Int?
+  nombre            String?   @db.VarChar(50)
+  perfil            String?   @db.VarChar(50)
+  useremail         String?   @db.VarChar(50)
+  contrase_a        String?   @map("contraseña") @db.VarChar(50)
+  celular           String?   @db.VarChar(50)
+  edad              Int?
+  direccion         String?   @db.VarChar(128)
+  fechaNacimiento   DateTime? @db.Date
+  rfc               String?   @db.VarChar(50)
+  curp              String?   @db.VarChar(50)
+  fechaIngreso      DateTime? @db.Date
+  nss               BigInt?
+  banco             String?   @db.VarChar(50)
+  cuentaBancaria    String?   @db.VarChar(50)
+  departamento      String?   @db.VarChar(50)
+  puesto            String?   @db.VarChar(50)
+  celFam            BigInt?
+  foto              String?   @db.VarChar(50)
+  estadoCivil       String?   @db.VarChar(50)
+  activo            String?   @db.VarChar(50)
+  sueldoQuincenal   String?   @db.VarChar(50)
+  fechaBaja         DateTime? @db.Date
+  antiguedad        String?   @db.VarChar(50)
+  vacaciones        String?   @db.VarChar(50)
+  observaciones     String?   @db.VarChar(50)
+  turno             String?   @db.VarChar(50)
+  diaagregado       String?   @db.VarChar(128)
+  quienModifica     String?   @db.VarChar(50)
+  fechaModificacion DateTime? @db.Date
+  ResetBot          Boolean?
+  idEmpresa         String?   @db.VarChar(50)
+  hora_entrada      DateTime? @db.Time(6)
+  hora_entrada_2    DateTime? @db.Time(6)
+}
+
+model chat_tecnicos {
+  idChat      String    @id @db.VarChar(50)
+  idticket    String?   @db.VarChar(50)
+  idbinticket String?   @db.VarChar(50)
+  idUsuario   String?   @db.VarChar(50)
+  idTecnico   String?   @db.VarChar(50)
+  idUnidad    String?   @db.VarChar(50)
+  fechaHora   DateTime? @db.Timestamp(6)
+  mensaje     String?
+  device      String?   @db.VarChar(50)
+  ubicReal    String?   @db.VarChar(50)
+}
+
+model checador {
+  idChecador        String    @id @db.VarChar(50)
+  fecha             DateTime? @db.Date
+  hora              DateTime? @db.Time(6)
+  registro          Int?
+  HoraEntrada       DateTime? @db.Time(6)
+  tipo              String?   @db.VarChar(50)
+  idUsuario         String?   @db.VarChar(50)
+  nombre            String?   @db.VarChar(50)
+  HoraSalida        DateTime? @db.Time(6)
+  horasLaboradas    Float?    @db.Real
+  Movimiento        String?   @db.VarChar(50)
+  estado            String?   @db.VarChar(50)
+  HorasExtras       Float?    @db.Real
+  AutorizacionHE    String?   @db.VarChar(50)
+  via               String?   @db.VarChar(50)
+  MotivoHorasExtras String?
+  deviceUUID        String?   @db.VarChar(50)
+  idPuesto          String?   @db.VarChar(50)
+  gps               String?   @db.VarChar(50)
+  idgeocerca        Int?
+  foto              String?   @db.VarChar(50)
+  ubicacion         String?   @db.VarChar(50)
+  Informativo       String?
+  AlertaHorasExtras String?   @db.VarChar(50)
+  alarma            String?   @db.VarChar(50)
+  fecha_hora        DateTime? @default(now()) @db.Timestamp(6)
+  minutos_retardo   Decimal?  @db.Decimal
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model conductores {
+  IdConductor         Int?
+  Empresa             String? @db.VarChar(50)
+  Identificador_Unico String? @map("Identificador Unico") @db.VarChar(50)
+  Nombre              String? @db.VarChar(50)
+  Apellido_Paterno    String? @map("Apellido Paterno") @db.VarChar(50)
+  Apellido_Materno    String? @map("Apellido Materno") @db.VarChar(50)
+  Id_Tarjeta_Fisico   String? @map("Id Tarjeta Fisico") @db.VarChar(50)
+  Versi_n             Int?    @map("Versión")
+  Tipo                String? @db.VarChar(50)
+  Cedula              BigInt?
+  NIP                 Int?
+  Activo              String? @db.VarChar(50)
+
+  @@ignore
+}
+
+model envios {
+  idenvio          String    @id @db.VarChar(128)
+  folioEnvio       String?   @db.VarChar(255)
+  guia             String?   @db.VarChar(255)
+  remitente        String?   @db.VarChar(255)
+  destino          String?   @db.VarChar(255)
+  fechaRecepcion   DateTime? @db.Timestamp(6)
+  Fechaenvio       DateTime? @db.Timestamp(6)
+  quienEnviaRecibe String?   @db.VarChar(255)
+  proyecto         String?   @db.VarChar(255)
+  comentarios      String?
+  descripcion      String?
+  cantidadCajas    Int?
+  paqueteria       String?   @db.VarChar(255)
+  packingList      String?   @db.VarChar(255)
+  fechaMovimiento  DateTime? @db.Timestamp(6)
+  imagen1          String?
+  imagen2          String?
+  imagen3          String?
+}
+
+model filtro {
+  usuario      String  @id @db.VarChar(50)
+  fechaInicial String? @db.VarChar(50)
+  fechaFinal   String? @db.VarChar(50)
+  unidad       String? @db.VarChar(50)
+  dispositivo  String? @db.VarChar(50)
+  falla        String? @db.VarChar(50)
+  categoria    String? @db.VarChar(50)
+  linea        String? @db.VarChar(50)
+  oeprador     String? @db.VarChar(50)
+  monitorista  String? @db.VarChar(50)
+  descripcion  String? @db.VarChar(50)
+}
+
+model gastos {
+  idgastos          String    @id @db.VarChar(50)
+  folioGasto        String?   @db.VarChar(50)
+  DescripcionCompra String?
+  total             String?   @db.VarChar(50)
+  metodoPago        String?   @db.VarChar(50)
+  Factura           String?   @db.VarChar(50)
+  fechaCompra       DateTime? @db.Timestamp(6)
+}
+
+model geocercas {
+  idGeocerca     Int                       @id
+  nombreGeocerca String?                   @db.VarChar(50)
+  coordenada     String?                   @db.VarChar(50)
+  radio          Int?
+  ubicacion      Unsupported("geography")?
+
+  @@index([ubicacion], map: "idx_geocercas_ubicacion", type: Gist)
+}
+
+model log_usuarios {
+  idLog  String    @id @db.VarChar(50)
+  nombre String?   @db.VarChar(50)
+  fecha  DateTime? @db.Date
+}
+
+model menu_almacen {
+  idMenu Int     @id
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(255)
+}
+
+model menu_catalogo {
+  idMenu Int     @id
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(255)
+}
+
+model menu_configuracion {
+  idMenu Int     @id
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(255)
+}
+
+model menu_dispositivo {
+  idMenu Int     @id(map: "menu_dispositivo_pk")
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(50)
+}
+
+model menu_general {
+  idMenu Int     @id(map: "menu_general_pk")
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(50)
+}
+
+model menu_nomina {
+  idMenuNomina Int     @id
+  nombre       String? @db.VarChar(50)
+  vista        String? @db.VarChar(50)
+  imagen       String? @db.VarChar(255)
+}
+
+model menu_tecnico {
+  idMenu Int     @id
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(50)
+}
+
+model menu_ticket {
+  idMenu Int     @id
+  nombre String? @db.VarChar(50)
+  vista  String? @db.VarChar(50)
+  imagen String? @db.VarChar(50)
+}
+
+model parametros_nomina {
+  idParametros String    @id @db.VarChar(50)
+  Qinicio      DateTime? @db.Date
+  QFin         DateTime? @db.Date
+}
+
+model permiso_vistas {
+  idPermiso String   @id @db.VarChar(50)
+  idUsuario String?  @db.VarChar(50)
+  idVista   String?  @db.VarChar(50)
+  permitido Boolean?
+}
+
+model rel_autobuses_dispositivo {
+  idMenu            Int     @id
+  nombre            String  @db.VarChar(50)
+  vista             String? @db.VarChar(50)
+  imagen            String? @db.VarChar(50)
+  idAsignacion      String? @db.VarChar(50)
+  idAutobus         String? @db.VarChar(50)
+  idDispostivo      String? @db.VarChar(50)
+  creadoPor         String? @db.VarChar(50)
+  fechaCreacion     String? @db.VarChar(50)
+  modificadoPor     String? @db.VarChar(50)
+  fechaModificacion String? @db.VarChar(50)
+}
+
+model rel_movimiento {
+  idMovimiento                                             String             @db.VarChar(50)
+  codigo                                                   String?            @db.VarChar(50)
+  fecha                                                    DateTime?          @db.Timestamp(6)
+  tipoMovimiento                                           String?            @db.VarChar(50)
+  idDispositivo                                            String?            @db.VarChar(50)
+  cantidad                                                 Int?
+  idAlmacenOrigen                                          String?            @db.VarChar(50)
+  idAlmacenDestino                                         String?            @db.VarChar(50)
+  contadorEntrada                                          Int?
+  contadorSalida                                           Int?
+  contadorTraspaso                                         Int?
+  contadorAsignacion                                       Int?
+  numeroSerie                                              String?
+  imei1                                                    String?            @db.VarChar(50)
+  imei2                                                    String?            @db.VarChar(50)
+  creadoPor                                                String?            @db.VarChar(50)
+  fechaCreacion                                            DateTime?          @db.Timestamptz(6)
+  modificadoPor                                            String?            @db.VarChar(50)
+  fechaModificacion                                        DateTime?          @db.Timestamp(6)
+  comentario                                               String?
+  cat_almacen_rel_movimiento_idAlmacenDestinoTocat_almacen cat_almacen?       @relation("rel_movimiento_idAlmacenDestinoTocat_almacen", fields: [idAlmacenDestino], references: [idAlmacen], onDelete: NoAction, onUpdate: NoAction, map: "id_almacen_destino")
+  cat_almacen_rel_movimiento_idAlmacenOrigenTocat_almacen  cat_almacen?       @relation("rel_movimiento_idAlmacenOrigenTocat_almacen", fields: [idAlmacenOrigen], references: [idAlmacen], onDelete: NoAction, onUpdate: NoAction, map: "id_almacen_origen")
+  cat_dispositivo_t                                        cat_dispositivo_t? @relation(fields: [idDispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "id_dispositivo_rel_movimiento_cat_dispositivo_t")
+
+  @@id([idMovimiento, idMovimiento], map: "primary key")
+  @@index([idAlmacenDestino], map: "fki_id_almacen_destino")
+  @@index([idAlmacenOrigen], map: "fki_id_almacen_origen")
+  @@index([idDispositivo], map: "fki_id_dispositivo_rel_movimiento_cat_dispositivo_t")
+}
+
+model sesion_monitor {
+  idSesion        String    @id @db.VarChar(50)
+  usuario         String?   @db.VarChar(50)
+  inicio          DateTime? @db.Timestamp(6)
+  fin             DateTime? @db.Timestamp(6)
+  estado          String?   @db.VarChar(50)
+  ultimaActividad DateTime? @db.Timestamp(6)
+}
+
+model solicitud_refaccion {
+  idSolicitud       String             @id @db.VarChar(50)
+  idticket          String?            @db.VarChar(50)
+  idDispositivo     String?            @db.VarChar(50)
+  cantidad          Decimal?           @default(1) @db.Decimal
+  idTecnico         String?            @db.VarChar(50)
+  estado            String?            @db.VarChar(20)
+  fecha             DateTime?          @default(now()) @db.Timestamp(6)
+  imagen            String?
+  cat_dispositivo_t cat_dispositivo_t? @relation(fields: [idDispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_dispositivoT")
+  bin_ticket        bin_ticket?        @relation(fields: [idticket], references: [idticket], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_idticket")
+  cat_tecnicos      cat_tecnicos?      @relation(fields: [idTecnico], references: [idTecnico], onDelete: Restrict, onUpdate: NoAction, map: "fk_solicitud_refaccion_tecnico")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model test_conteo {
+  idTestConteo     String    @id @db.VarChar(50)
+  FechaHora        DateTime? @db.Timestamp(6)
+  Unidad           String?   @db.VarChar(50)
+  p1subidas        Int?
+  p1Bajadas        Int?
+  p2Subidas        Int?
+  p2Bajadas        Int?
+  AbordoCapturado  Int?
+  subidasTotales   Int?
+  BajadasTotales   Int?
+  PasajerosTotales Int?
+  AbordoSistema    Int?
+  ErrorAbordo_     String?   @map("ErrorAbordo%") @db.VarChar(50)
+  FlujoTotal       Int?
+  Diagnostico      String?   @db.VarChar(50)
+  GapAbordo        Int?
+  ErrorAbordo__1   Int?      @map("ErrorAbordo%_1")
+  DesfaseAbs       Int?
+  Diferencia       String?   @db.VarChar(50)
+  EstadoFinal      String?   @db.VarChar(50)
+  Usuario          String?   @db.VarChar(50)
+  FlagU2Alto       Boolean?
+  Flagu1Bajo       Boolean?
+}
+
+model vistas {
+  idvista       String  @id @db.VarChar(50)
+  vista         String? @db.VarChar(50)
+  superAdmin    String? @db.VarChar(50)
+  admin         String? @db.VarChar(50)
+  tecnicojr     String? @db.VarChar(50)
+  tecnicosinior String? @db.VarChar(50)
+  supervisor    String? @db.VarChar(50)
+  almacen       String? @db.VarChar(50)
+  capturista    String? @db.VarChar(50)
+  mesacontrol   String? @db.VarChar(50)
+  consultas     String? @db.VarChar(50)
+}
