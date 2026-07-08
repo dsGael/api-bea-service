@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     const jwtSecret = configService.get<string>('JWT_SECRET')!;
+    console.log('✅ JwtStrategy inicializada con el secreto:', jwtSecret); // <--- Rastreador 1
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -16,7 +17,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // Esto es lo que termina en request.user
+    console.log('✅ Token válido, payload decodificado:', payload); // <--- Rastreador 2
+    
     return {
       idUsuario: payload.sub,
       useremail: payload.useremail,
