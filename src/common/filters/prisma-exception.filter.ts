@@ -1,25 +1,21 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus } from '@nestjs/common';
-// Avoid importing '@prisma/client' here to prevent missing-module errors in environments
-// where prisma client types are not available. We detect Prisma errors at runtime by name.
+import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 
-@Catch()
+@Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    // Only handle Prisma known request errors
-    const isPrismaKnownError = exception?.name === 'PrismaClientKnownRequestError';
-
-    if (isPrismaKnownError && exception.code === 'P2003') {
+    if (exception.code === 'P2003') {
       return response.status(HttpStatus.CONFLICT).json({
         statusCode: HttpStatus.CONFLICT,
         message: 'No se puede eliminar: este registro está siendo usado en otro lugar del sistema',
       });
     }
 
-    if (isPrismaKnownError && exception.code === 'P2025') {
+    if (exception.code === 'P2025') {
       return response.status(HttpStatus.NOT_FOUND).json({
         statusCode: HttpStatus.NOT_FOUND,
         message: 'Registro no encontrado',

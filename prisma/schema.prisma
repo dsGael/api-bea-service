@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model asignacion_diaria {
@@ -371,7 +371,7 @@ model cat_falla {
   falla             String?
   descripcionFalla  String?
   creadoPor         String?             @db.VarChar(50)
-  fechaCreacion     DateTime?           @db.Time(6)
+  fechaCreacion     DateTime?           @db.Timestamp(6)
   modificadoPor     String?             @db.VarChar(50)
   fechaModificacion DateTime?           @db.Timestamp(6)
   bin_ticket        bin_ticket[]
@@ -515,7 +515,7 @@ model cat_usuario {
   celFam            BigInt?
   foto              String?   @db.VarChar(50)
   estadoCivil       String?   @db.VarChar(50)
-  activo            String?   @db.VarChar(50)
+  activo            Boolean?
   sueldoQuincenal   String?   @db.VarChar(50)
   fechaBaja         DateTime? @db.Date
   antiguedad        String?   @db.VarChar(50)

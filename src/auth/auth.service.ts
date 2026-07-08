@@ -11,8 +11,9 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    
     const usuario = await this.prisma.cat_usuario.findFirst({
-      where: { idUsuario: dto.usuario },
+      where: { idUsuario: { equals: dto.usuario, mode: 'insensitive' } },
     });
 
     if (!usuario) {
@@ -24,7 +25,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    if (usuario.activo !== 'true' && usuario.activo !== '1') {
+    if (usuario.activo !== true) {
       throw new UnauthorizedException('Usuario inactivo');
     }
 

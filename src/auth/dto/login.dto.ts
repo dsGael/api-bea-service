@@ -5,7 +5,7 @@ export class LoginDto {
   usuario!: string;
 
   @IsString()
-  @MinLength(4)
+  @MinLength(2)
   password!: string;
 }
 
