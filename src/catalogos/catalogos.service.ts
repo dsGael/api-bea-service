@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { FallaResponseDto } from './dto/falla-response.dto';
-import { DispositivoTipoResponseDto } from './dto/dispositivo-tipo-response.dto';
-import { ActualizarFallaDto, CrearFallaDto } from './dto/crear-update-falla.dto';
+import { DispositivoTipoResponseDto } from './dto/dispositivo-tipo.dto';
+import { ActualizarFallaDto, CrearFallaDto, FallaResponseDto } from './dto/falla.dto';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class CatalogosService {
   constructor(private readonly prisma: PrismaService) {}
+
+    // cat_fallas
 
     async listarFallas(): Promise<FallaResponseDto[]> {
         const fallas = await this.prisma.cat_falla.findMany({
@@ -45,12 +46,28 @@ export class CatalogosService {
     }
 
 
+    // cat_dispositivo_t
+
     async listarTiposDispositivo(): Promise<DispositivoTipoResponseDto[]> {
         const tipos = await this.prisma.cat_dispositivo_t.findMany({
         orderBy: { nombre: 'asc' },
         });
         return tipos.map(DispositivoTipoResponseDto.fromPrisma);
     }
+
+    async crearTipoDispositivo(dto: any, usuario: string) {
+        const tipo = await this.prisma.cat_dispositivo_t.create({
+            data: {
+            idDispositivoT: randomUUID(),
+            nombre: dto.nombre,
+            descripcion: dto.descripcion,
+            tipo: dto.tipo,
+            requiereSerie: dto.requiereSerie,
+    }})
+
+}
+
+    // cat_categoria
 
     async listarCategorias() {
         return this.prisma.cat_categoria.findMany({
@@ -59,6 +76,8 @@ export class CatalogosService {
         });
     }
 
+    // cat_prioridad
+
     async listarPrioridades() {
         return this.prisma.cat_prioridad.findMany({
         select: { idPrioridad: true, nombre: true },
@@ -66,12 +85,14 @@ export class CatalogosService {
         });
     }
 
+    // cat_estado_r
     async listarEstadosReparacion() {
         return this.prisma.cat_estado_r.findMany({
         select: { idEstadoR: true, nombre: true },
         });
     }
 
+    // cat_ruta
     async listarRutas() {
         return this.prisma.cat_ruta.findMany({
         select: { idRuta: true, nombre: true, longitud: true },

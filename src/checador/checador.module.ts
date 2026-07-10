@@ -4,6 +4,6 @@ import { ChecadorService } from './checador.service';
 
 @Module({
   controllers: [ChecadorController],
-  providers: [ChecadorService]
+  providers: [ChecadorService],
 })
 export class ChecadorModule {}

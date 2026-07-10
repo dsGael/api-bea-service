@@ -5,10 +5,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CrearFallaDto,ActualizarFallaDto } from './dto/crear-update-falla.dto';
+import { CrearFallaDto,ActualizarFallaDto } from './dto/falla.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-
-
 
 
 @ApiTags('catalogos')
@@ -28,14 +26,14 @@ export class CatalogosController {
 
     @Post('fallas')
     @UseGuards(RolesGuard)
-    @Roles('superAdmin', 'admin')
+    @Roles('superAdmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
     crearFalla(@Body() dto: CrearFallaDto, @CurrentUser() user: any) {
     return this.catalogosService.crearFalla(dto, user.useremail);
     }
     
     @Patch('fallas/:id')
     @UseGuards(RolesGuard)
-    @Roles('superAdmin', 'admin')
+    //@Roles('superAdmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
     actualizarFalla(
     @Param('id') id: string,
     @Body() dto:ActualizarFallaDto,

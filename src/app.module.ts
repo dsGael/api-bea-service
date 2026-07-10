@@ -13,9 +13,10 @@ import { GastosModule } from './gastos/gastos.module';
 import { NominaModule } from './nomina/nomina.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
-  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, TecnicosModule, ChatModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule],
+  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, TecnicosModule, ChatModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule, UsuariosModule],
   controllers: [AppController],
   providers: [AppService],
 })
