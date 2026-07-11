@@ -7,6 +7,6 @@ import { MovimientosService } from './movimientos.service';
 @Module({
   controllers: [AlmacenController, MovimientosController],
   providers: [AlmacenService, MovimientosService],
-  exports: [MovimientosService], // por si RefaccionesModule necesita descontar inventario después
+  exports: [MovimientosService], 
 })
 export class AlmacenModule {}
