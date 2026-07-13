@@ -24,7 +24,7 @@ model bin_ticket {
   fecha                    DateTime?             @db.Date
   fechahora                DateTime?             @db.Timestamp(6)
   tiporeparacion           String?               @db.VarChar(50)
-  folio                    String                @unique(map: "bin_ticket_unique") @db.VarChar(50)
+  folio                    String?               @unique(map: "bin_ticket_unique") @db.VarChar(50)
   idautobus                String?               @db.VarChar(50)
   numeroeconomico          String?               @db.VarChar(50)
   idruta                   String?               @db.VarChar(50)
@@ -69,6 +69,8 @@ model bin_ticket {
   alertafoliosabiertos     String?               @db.VarChar(50)
   resetbot                 String?               @db.VarChar(50)
   check_in                 DateTime?             @db.Timestamp(6)
+  idempresa                String?               @db.VarChar(50)
+  num_folio                Int?                  
   cat_autobus              cat_autobus?          @relation(fields: [idautobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_autobus")
   cat_categoria            cat_categoria?        @relation(fields: [idcategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_categoria")
   cat_dispositivo          cat_dispositivo?      @relation(fields: [iddispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo")
@@ -467,6 +469,7 @@ model cat_tecnicos {
   bin_ticket          bin_ticket[]
   bin_ticket_detail   bin_ticket_detail[]
   campa_a             campa_a[]
+  checador            checador[]
   solicitud_refaccion solicitud_refaccion[]
 }
 
@@ -545,33 +548,34 @@ model chat_tecnicos {
 }
 
 model checador {
-  idChecador        String    @id @db.VarChar(50)
-  fecha             DateTime? @db.Date
-  hora              DateTime? @db.Time(6)
+  idChecador        String        @id @db.VarChar(50)
+  fecha             DateTime?     @db.Date
+  hora              DateTime?     @db.Time(6)
   registro          Int?
-  HoraEntrada       DateTime? @db.Time(6)
-  tipo              String?   @db.VarChar(50)
-  idUsuario         String?   @db.VarChar(50)
-  nombre            String?   @db.VarChar(50)
-  HoraSalida        DateTime? @db.Time(6)
-  horasLaboradas    Float?    @db.Real
-  Movimiento        String?   @db.VarChar(50)
-  estado            String?   @db.VarChar(50)
-  HorasExtras       Float?    @db.Real
-  AutorizacionHE    String?   @db.VarChar(50)
-  via               String?   @db.VarChar(50)
+  HoraEntrada       DateTime?     @db.Time(6)
+  tipo              String?       @db.VarChar(50)
+  idUsuario         String?       @db.VarChar(50)
+  nombre            String?       @db.VarChar(50)
+  HoraSalida        DateTime?     @db.Time(6)
+  horasLaboradas    Float?        @db.Real
+  Movimiento        String?       @db.VarChar(50)
+  estado            String?       @db.VarChar(50)
+  HorasExtras       Float?        @db.Real
+  AutorizacionHE    String?       @db.VarChar(50)
+  via               String?       @db.VarChar(50)
   MotivoHorasExtras String?
-  deviceUUID        String?   @db.VarChar(50)
-  idPuesto          String?   @db.VarChar(50)
-  gps               String?   @db.VarChar(50)
+  deviceUUID        String?       @db.VarChar(50)
+  idPuesto          String?       @db.VarChar(50)
+  gps               String?       @db.VarChar(50)
   idgeocerca        Int?
-  foto              String?   @db.VarChar(50)
-  ubicacion         String?   @db.VarChar(50)
+  foto              String?       @db.VarChar(50)
+  ubicacion         String?       @db.VarChar(50)
   Informativo       String?
-  AlertaHorasExtras String?   @db.VarChar(50)
-  alarma            String?   @db.VarChar(50)
-  fecha_hora        DateTime? @default(now()) @db.Timestamp(6)
-  minutos_retardo   Decimal?  @db.Decimal
+  AlertaHorasExtras String?       @db.VarChar(50)
+  alarma            String?       @db.VarChar(50)
+  fecha_hora        DateTime?     @default(now()) @db.Timestamp(6)
+  minutos_retardo   Decimal?      @db.Decimal
+  cat_tecnicos      cat_tecnicos? @relation(fields: [idUsuario], references: [idTecnico], onDelete: NoAction, onUpdate: NoAction, map: "checador_cat_tecnicos_fk")
 }
 
 model conductores {

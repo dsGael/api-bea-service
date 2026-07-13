@@ -6,6 +6,7 @@ import { CrearTicketDto } from './dto/crear-actualizar-ticket.dto';
 import { CerrarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
+import { Prisma } from '@prisma/client';
 
 const ESTADO_CERRADO_ID = 'FIN5c61e7'; 
 
@@ -56,38 +57,95 @@ export class TicketsService {
 }
 
 
+ private async resolverIdEmpresa(idempresa?: string, idreporta?: string): Promise<string> {
+    // Si el front mandó la empresa, usamos esa
+    if (idempresa) return idempresa;
 
-  async crearTicket(dto: CrearTicketDto, usuario: string) {
-    // Validamos contra el catálogo antes de insertar — evita tickets con referencias huérfanas
-    const fallas = await this.catalogos.listarFallas();
-    const fallaValida = fallas.some((f) => f.id === dto.idfalla);
-    if (!fallaValida) {
-      throw new BadRequestException('idfalla no reconocido en el catálogo');
+    // Si no, la deducimos de quien reporta
+    if (idreporta) {
+      const reporta = await this.prisma.cat_reporta.findUnique({
+        where: { idReporta: idreporta },
+        select: { idEmpresa: true },
+      });
+      if (reporta?.idEmpresa) return reporta.idEmpresa;
     }
 
-    const ticket = await this.prisma.bin_ticket.create({
-      data: {
-        idticket: randomUUID(),
-        folio: `T-${Date.now()}`,
-        fecha: new Date(),
-        fechahora: new Date(),
-        idautobus: dto.idautobus,
-        idruta: dto.idruta,
-        idoperador: dto.idoperador,
-        iddispositivo: dto.iddispositivo,
-        idfalla: dto.idfalla,
-        idcategoria: dto.idcategoria,
-        idprioridad: dto.idprioridad,
-        idreporta: dto.idreporta,
-        comentarios: dto.comentarios,
-        estatusrep: 'abierto',
-        creadopor: usuario,
-        fechacreacion: new Date(),
+    throw new BadRequestException('El idempresa es obligatorio.');
+  }
+
+  private async resolverIdRuta(idruta?: string, idautobus?: string): Promise<string | undefined> {
+    // Si el front mandó la ruta, usamos esa
+    if (idruta) return idruta;
+    if (!idautobus) return undefined;
+
+    // Buscamos el autobús
+    const autobus = await this.prisma.cat_autobus.findUnique({
+      where: { idAutobus: idautobus },
+      select: { numeroEconomico: true },
+    });
+    if (!autobus) return undefined;
+
+    // Buscamos la asignación
+    const ahora = new Date();
+    const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const finDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59);
+
+    const asignacion = await this.prisma.asignacion_diaria.findFirst({
+      where: {
+        UNIDAD: autobus.numeroEconomico,
+        FECHA: { gte: inicioDia, lte: finDia },
       },
     });
+    if (!asignacion) return undefined;
 
-    return ticket;
+    // Buscamos la ruta
+    const ruta = await this.prisma.cat_ruta.findFirst({
+      where: { nombre: asignacion.LINEA?.toString() },
+      select: { idRuta: true },
+    });
+
+    return ruta?.idRuta;
   }
+
+
+  async crearTicket(dto: CrearTicketDto, usuario: string) {
+    const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
+    const idRutaFinal = await this.resolverIdRuta(dto.idruta, dto.idautobus);
+
+    const ahora = new Date();
+    const soloFecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+    try {
+      return await this.prisma.bin_ticket.create({
+        data: {
+          idticket: randomUUID(),
+          fecha: soloFecha,
+          fechahora: ahora,
+          idautobus: dto.idautobus,
+          idruta: idRutaFinal,
+          idoperador: dto.idoperador,
+          iddispositivo: dto.iddispositivo,
+          idfalla: dto.idfalla,
+          idcategoria: dto.idcategoria,
+          idprioridad: dto.idprioridad,
+          idreporta: dto.idreporta,
+          comentarios: dto.comentarios,
+          estatusrep: 'ABI9e9uqgr',
+          creadopor: usuario,
+          fechacreacion: ahora,
+          idempresa: idEmpresaFinal,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new BadRequestException(
+          `Error de integridad: El identificador proporcionado no existe en el catálogo relacionado. (Referencia: ${error.meta?.field_name})`
+        );
+      }
+      throw error;
+    }
+  }
+
 
   async listarPorTecnico(idtecnico: string) {
     return this.prisma.bin_ticket.findMany({
@@ -141,20 +199,25 @@ export class TicketsService {
     const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
 
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
-    if (ticket.estatusrep === 'cerrado') {
+    
+    // Validar usando tu constante o el string exacto de la base de datos
+    if (ticket.estatusrep === 'FIN5c61e7' || ticket.estatusrep === 'cerrado') {
       throw new BadRequestException('El ticket ya está cerrado');
     }
 
-    // Transacción: el ticket se cierra Y se crea el registro de detalle,
-    // o ninguna de las dos cosas pasa
+    // 1. Instanciamos la fecha una SOLA VEZ para perfecta sincronía
+    const ahora = new Date();
+
+    // Transacción: el ticket se cierra Y se crea el registro de detalle
     return this.prisma.$transaction(async (tx) => {
+      
       const ticketCerrado = await tx.bin_ticket.update({
         where: { idticket },
         data: {
-          estatusrep: 'cerrado',
-          fecharesolucion: new Date(),
+          estatusrep: 'FIN5c61e7', // O 'cerrado', dependiendo de tu catálogo real
+          fecharesolucion: ahora,
           modificadopor: usuario,
-          fechamodificacion: new Date(),
+          fechamodificacion: ahora,
         },
       });
 
@@ -162,7 +225,7 @@ export class TicketsService {
         data: {
           idDetalle: randomUUID(),
           idTicket: idticket,
-          fechaHora: new Date(),
+          fechaHora: ahora,
           folio: ticket.folio,
           idAutobus: ticket.idautobus,
           idRuta: ticket.idruta,
@@ -170,14 +233,17 @@ export class TicketsService {
           idFalla: ticket.idfalla,
           idCategoria: ticket.idcategoria,
           idTecnico: ticket.idtecnico,
+          // Datos que vienen del DTO:
           Diagnostico: dto.diagnostico,
           Reparacion: dto.reparacion,
           comentarios: dto.comentarios,
           imagen1: dto.imagen1,
           imagen2: dto.imagen2,
-          fechaResolucion: new Date(),
+          // Tiempos e información de sistema:
+          fechaResolucion: ahora,
           creadoPor: usuario,
-          fechaCreacion: new Date(),
+          fechaCreacion: ahora,
+          idEstado: 'reparado', // ¡Agregamos el estado que le corresponde al detalle!
         },
       });
 

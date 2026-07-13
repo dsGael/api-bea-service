@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsNumber } from 'class-validator';
 
 export class CrearTicketDto {
   @IsOptional()
@@ -17,9 +17,6 @@ export class CrearTicketDto {
   @IsString()
   tiporeparacion?: string;
 
-  @IsOptional()
-  @IsString()
-  folio?: string;
 
   @IsOptional()
   @IsString()
@@ -54,14 +51,14 @@ export class CrearTicketDto {
 
   @IsOptional()
   @IsString()
-  iddispositivot?: string;
+  iddispositivot?: string; //appsheet lo rellena desde any(select(catDispositivo[idDispositivoT],[idDispositivo]=[_THISROW].[idDispositivo]))
 
   @IsString()
   idfalla!: string;
 
   @IsOptional()
   @IsString()
-  idcategoria?: string;
+  idcategoria?: string; // tiene initial value
 
   @IsOptional()
   @IsString()
@@ -194,4 +191,13 @@ export class CrearTicketDto {
   @IsOptional()
   @IsDateString()
   check_in?: string;
+
+  
+  @IsOptional()
+  @IsString()
+  idempresa?: string;
+
+
+
+
 }
