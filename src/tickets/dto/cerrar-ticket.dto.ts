@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CerrarTicketDto {
@@ -26,4 +26,17 @@ export class CerrarTicketDto {
   @IsString()
   @IsOptional()
   imagen2?: string;
+}
+
+
+export class ValidarTicketDto {
+  @IsBoolean({ message: 'El campo aprobado debe ser un valor booleano (true o false)' })
+  @IsNotEmpty({ message: 'Debe especificar si el ticket es aprobado o rechazado' })
+  aprobado!: boolean;
+
+  // ValidateIf hace que este campo sea obligatorio SOLO si aprobado es falso
+  @ValidateIf((objeto) => objeto.aprobado === false)
+  @IsString({ message: 'El comentario de rechazo debe ser texto' })
+  @IsNotEmpty({ message: 'Debe proporcionar un motivo de rechazo para devolver el ticket' })
+  comentarioRechazo?: string;
 }

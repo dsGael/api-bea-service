@@ -24,7 +24,7 @@ model bin_ticket {
   fecha                    DateTime?             @db.Date
   fechahora                DateTime?             @db.Timestamp(6)
   tiporeparacion           String?               @db.VarChar(50)
-  folio                    String?               @unique(map: "bin_ticket_unique") @db.VarChar(50)
+  folio                    String                @unique(map: "bin_ticket_unique") @db.VarChar(50)
   idautobus                String?               @db.VarChar(50)
   numeroeconomico          String?               @db.VarChar(50)
   idruta                   String?               @db.VarChar(50)
@@ -46,7 +46,6 @@ model bin_ticket {
   fechacreacion            DateTime?             @db.Timestamp(6)
   modificadopor            String?               @db.VarChar(50)
   fechamodificacion        DateTime?             @db.Timestamp(6)
-  estatusrep               String?               @db.VarChar(50)
   msjenviado               String?               @db.VarChar(50)
   foliocliente             String?               @db.VarChar(50)
   reasignado               String?               @db.VarChar(50)
@@ -69,13 +68,13 @@ model bin_ticket {
   alertafoliosabiertos     String?               @db.VarChar(50)
   resetbot                 String?               @db.VarChar(50)
   check_in                 DateTime?             @db.Timestamp(6)
-  idempresa                String?               @db.VarChar(50)
-  num_folio                Int?                  
+  idempresa                String?               @db.VarChar(20)
+  num_folio                Int?
   cat_autobus              cat_autobus?          @relation(fields: [idautobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_autobus")
   cat_categoria            cat_categoria?        @relation(fields: [idcategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_categoria")
   cat_dispositivo          cat_dispositivo?      @relation(fields: [iddispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo")
   cat_dispositivo_t        cat_dispositivo_t?    @relation(fields: [iddispositivot], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo_t")
-  cat_estado_r             cat_estado_r?         @relation(fields: [idestado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_estado")
+  estado                   cat_estado_r?         @relation(fields: [idestado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_estado")
   cat_falla                cat_falla?            @relation(fields: [idfalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_falla")
   cat_prioridad            cat_prioridad?        @relation(fields: [idprioridad], references: [idPrioridad], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_prioridad")
   cat_reporta              cat_reporta?          @relation(fields: [idreporta], references: [idReporta], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_reporta")
@@ -293,6 +292,8 @@ model cat_dispositivo {
   activo            Boolean?
   bin_ticket        bin_ticket[]
   bin_ticket_detail bin_ticket_detail[]
+  cat_dispositivo_t cat_dispositivo_t?  @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "cat_dispositivo_cat_dispositivo_t_fk")
+  lab_reparacion    lab_reparacion[]
 }
 
 model cat_dispositivo_t {
@@ -308,6 +309,8 @@ model cat_dispositivo_t {
   bin_ticket          bin_ticket[]
   bin_ticket_detail   bin_ticket_detail[]
   cat_diagnostico     cat_diagnostico[]
+  cat_dispositivo     cat_dispositivo[]
+  lab_reparacion      lab_reparacion[]
   rel_movimiento      rel_movimiento[]
   solicitud_refaccion solicitud_refaccion[]
 }
@@ -470,6 +473,7 @@ model cat_tecnicos {
   bin_ticket_detail   bin_ticket_detail[]
   campa_a             campa_a[]
   checador            checador[]
+  lab_reparacion      lab_reparacion[]
   solicitud_refaccion solicitud_refaccion[]
 }
 
@@ -493,45 +497,6 @@ model cat_ubicacion {
   fechaCreacion     String? @db.VarChar(50)
   modificadoPor     String? @db.VarChar(50)
   fechaModificacion String? @db.VarChar(50)
-}
-
-model cat_usuario {
-  idUsuario         String    @id @db.VarChar(50)
-  idtecnico         String?   @db.VarChar(50)
-  numEmpleado       Int?
-  nombre            String?   @db.VarChar(50)
-  perfil            String?   @db.VarChar(50)
-  useremail         String?   @db.VarChar(50)
-  contrase_a        String?   @map("contraseña") @db.VarChar(50)
-  celular           String?   @db.VarChar(50)
-  edad              Int?
-  direccion         String?   @db.VarChar(128)
-  fechaNacimiento   DateTime? @db.Date
-  rfc               String?   @db.VarChar(50)
-  curp              String?   @db.VarChar(50)
-  fechaIngreso      DateTime? @db.Date
-  nss               BigInt?
-  banco             String?   @db.VarChar(50)
-  cuentaBancaria    String?   @db.VarChar(50)
-  departamento      String?   @db.VarChar(50)
-  puesto            String?   @db.VarChar(50)
-  celFam            BigInt?
-  foto              String?   @db.VarChar(50)
-  estadoCivil       String?   @db.VarChar(50)
-  activo            Boolean?
-  sueldoQuincenal   String?   @db.VarChar(50)
-  fechaBaja         DateTime? @db.Date
-  antiguedad        String?   @db.VarChar(50)
-  vacaciones        String?   @db.VarChar(50)
-  observaciones     String?   @db.VarChar(50)
-  turno             String?   @db.VarChar(50)
-  diaagregado       String?   @db.VarChar(128)
-  quienModifica     String?   @db.VarChar(50)
-  fechaModificacion DateTime? @db.Date
-  ResetBot          Boolean?
-  idEmpresa         String?   @db.VarChar(50)
-  hora_entrada      DateTime? @db.Time(6)
-  hora_entrada_2    DateTime? @db.Time(6)
 }
 
 model chat_tecnicos {
@@ -837,4 +802,73 @@ model vistas {
   capturista    String? @db.VarChar(50)
   mesacontrol   String? @db.VarChar(50)
   consultas     String? @db.VarChar(50)
+}
+
+model cat_empleados {
+  idEmpleado        String           @id(map: "cat_usuario_pkey") @db.VarChar(50)
+  idtecnico         String?          @db.VarChar(50)
+  numEmpleado       Int?
+  nombre            String?          @db.VarChar(50)
+  perfil            String?          @db.VarChar(50)
+  useremail         String?          @db.VarChar(50)
+  contrase_a        String?          @map("contraseña") @db.VarChar(50)
+  celular           String?          @db.VarChar(50)
+  edad              Int?
+  direccion         String?          @db.VarChar(128)
+  fechaNacimiento   DateTime?        @db.Date
+  rfc               String?          @db.VarChar(50)
+  curp              String?          @db.VarChar(50)
+  fechaIngreso      DateTime?        @db.Date
+  nss               BigInt?
+  banco             String?          @db.VarChar(50)
+  cuentaBancaria    String?          @db.VarChar(50)
+  departamento      String?          @db.VarChar(50)
+  puesto            String?          @db.VarChar(50)
+  celFam            BigInt?
+  foto              String?          @db.VarChar(50)
+  estadoCivil       String?          @db.VarChar(50)
+  activo            Boolean?
+  sueldoQuincenal   String?          @db.VarChar(50)
+  fechaBaja         DateTime?        @db.Date
+  antiguedad        String?          @db.VarChar(50)
+  vacaciones        String?          @db.VarChar(50)
+  observaciones     String?          @db.VarChar(50)
+  turno             String?          @db.VarChar(50)
+  diaagregado       String?          @db.VarChar(128)
+  quienModifica     String?          @db.VarChar(50)
+  fechaModificacion DateTime?        @db.Date
+  ResetBot          Boolean?
+  idEmpresa         String?          @db.VarChar(50)
+  hora_entrada      DateTime?        @db.Time(6)
+  hora_entrada_2    DateTime?        @db.Time(6)
+  cat_usuarios      cat_usuarios?
+  lab_reparacion    lab_reparacion[]
+}
+
+model cat_usuarios {
+  idUsuario     String         @id @db.VarChar(255)
+  idEmpleado    String?        @unique @db.VarChar(255)
+  contrase_a    String?        @map("contraseña") @db.VarChar(255)
+  perfil        String?        @db.VarChar(50)
+  cat_empleados cat_empleados? @relation(fields: [idEmpleado], references: [idEmpleado], onDelete: Cascade)
+}
+
+model lab_reparacion {
+  id_reparacion     String            @id @default(dbgenerated("nextval('lab_reparacion_id_reparacion_seq'::regclass)")) @db.VarChar(50)
+  id_dispositivo_t  String            @db.VarChar(50)
+  id_usuario_asigna String            @db.VarChar(50)
+  id_tecnico_lab    String?           @db.VarChar(50)
+  estatus           String?           @default("ASIGNADO") @db.VarChar(50)
+  notas_diagnostico String?
+  fecha_ingreso     DateTime?         @default(now()) @db.Timestamp(6)
+  fecha_cierre      DateTime?         @db.Timestamp(6)
+  evidencia_1       String?
+  evidencia_2       String?
+  evidencia_3       String?
+  numero_serie      String?           @db.VarChar(255)
+  id_dispositivo    String?           @db.VarChar(255)
+  cat_dispositivo   cat_dispositivo?  @relation(fields: [id_dispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_dispositivo")
+  cat_dispositivo_t cat_dispositivo_t @relation(fields: [id_dispositivo_t], references: [idDispositivoT], onDelete: NoAction, map: "fk_reparacion_dispositivo_t")
+  cat_tecnicos      cat_tecnicos?     @relation(fields: [id_tecnico_lab], references: [idTecnico], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_tecnico")
+  cat_empleados     cat_empleados     @relation(fields: [id_usuario_asigna], references: [idEmpleado], onDelete: NoAction, map: "fk_reparacion_usuario_asigna")
 }

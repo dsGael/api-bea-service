@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class ListarTicketsQueryDto {
   @IsOptional()
   @IsString()
-  estatusrep?: string; // 'abierto' | 'en_proceso' | 'cerrado'
+  idestado?: string; 
 
   @IsOptional()
   @IsString()

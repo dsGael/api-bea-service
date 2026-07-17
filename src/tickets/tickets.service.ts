@@ -2,13 +2,21 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogosService } from '../catalogos/catalogos.service';
-import { CrearTicketDto } from './dto/crear-actualizar-ticket.dto';
-import { CerrarTicketDto } from './dto/cerrar-ticket.dto';
+import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
+import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
 import { Prisma } from '@prisma/client';
 
-const ESTADO_CERRADO_ID = 'FIN5c61e7'; 
+// idestado — ids reales de tu catálogo cat_estado_r, única fuente de verdad del estado
+const ESTADO_ABIERTO_ID = 'ABI9e9uqgr';
+const ESTADO_VALIDACION_ID = 'VALID123';
+const ESTADO_FINALIZADO_ID = 'FIN5c61e7';
+const ESTADO_CANCELADO_ID = 'CANb911e';
+const ESTADO_PENDIENTE_ID = 'pdterefac';
+
+// Ajusta al id real de tu cat_tipo_reparacion para "mantenimiento"
+const TIPO_MANTENIMIENTO_ID = 'MANTENIMIENTO'; // <- reemplaza por el id real del catálogo
 
 @Injectable()
 export class TicketsService {
@@ -17,51 +25,50 @@ export class TicketsService {
     private readonly catalogos: CatalogosService,
   ) {}
 
- async listarTodos(query: ListarTicketsQueryDto) {
-  const { page = 1, limit = 20, ...filtros } = query;
+  async listarTodos(query: ListarTicketsQueryDto) {
+    const { page = 1, limit = 20, ...filtros } = query;
 
-  const where = {
-    ...(filtros.estatusrep && { estatusrep: filtros.estatusrep }),
-    ...(filtros.idautobus && { idautobus: filtros.idautobus }),
-    ...(filtros.idruta && { idruta: filtros.idruta }),
-    ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }),
-    ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
-  };
+    const where = {
+      ...(filtros.idestado && { idestado: filtros.idestado }),
+      ...(filtros.idautobus && { idautobus: filtros.idautobus }),
+      ...(filtros.idruta && { idruta: filtros.idruta }),
+      ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }),
+      ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
+    };
 
-  const [tickets, total] = await this.prisma.$transaction([
-    this.prisma.bin_ticket.findMany({
-      where,
-      include: {
-        cat_falla: true,
-        cat_autobus: true,
-        cat_prioridad: true,
-        cat_estado_r: true,
-        cat_tecnicos: true,
-      },
-      orderBy: { fechacreacion: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    this.prisma.bin_ticket.count({ where }),
-  ]);
+    const [tickets, total] = await this.prisma.$transaction([
+      this.prisma.bin_ticket.findMany({
+        where,
+        include: {
+          cat_falla: true,
+          cat_autobus: true,
+          cat_prioridad: true,
+          estado: true,
+          cat_tecnicos: true,
+          cat_dispositivo_t: true,
+        },
+        orderBy: { fechacreacion: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.bin_ticket.count({ where }),
+    ]);
 
-  return {
-    data: tickets,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
+    return {
+      data: tickets,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
 
+  // ── Resolvers: cada uno reemplaza una fórmula que antes vivía en AppSheet ──
 
- private async resolverIdEmpresa(idempresa?: string, idreporta?: string): Promise<string> {
-    // Si el front mandó la empresa, usamos esa
+  private async resolverIdEmpresa(
+    idempresa?: string,
+    idreporta?: string,
+    idtecnico?: string,
+  ): Promise<string> {
     if (idempresa) return idempresa;
 
-    // Si no, la deducimos de quien reporta
     if (idreporta) {
       const reporta = await this.prisma.cat_reporta.findUnique({
         where: { idReporta: idreporta },
@@ -70,35 +77,31 @@ export class TicketsService {
       if (reporta?.idEmpresa) return reporta.idEmpresa;
     }
 
+    if (idtecnico) {
+      const tecnico = await this.prisma.cat_tecnicos.findUnique({
+        where: { idTecnico: idtecnico },
+        select: { idEmpresa: true },
+      });
+      if (tecnico?.idEmpresa) return tecnico.idEmpresa;
+    }
+
     throw new BadRequestException('El idempresa es obligatorio.');
   }
 
-  private async resolverIdRuta(idruta?: string, idautobus?: string): Promise<string | undefined> {
-    // Si el front mandó la ruta, usamos esa
+  /**
+   * Igual que antes: busca la ruta asignada hoy a la unidad, vía asignacion_diaria.
+   */
+  private async resolverIdRuta(idruta?: string, numeroEconomico?: string): Promise<string | undefined> {
     if (idruta) return idruta;
-    if (!idautobus) return undefined;
+    if (!numeroEconomico) return undefined;
 
-    // Buscamos el autobús
-    const autobus = await this.prisma.cat_autobus.findUnique({
-      where: { idAutobus: idautobus },
-      select: { numeroEconomico: true },
-    });
-    if (!autobus) return undefined;
-
-    // Buscamos la asignación
-    const ahora = new Date();
-    const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-    const finDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59);
+    const { inicioDia, finDia } = this.rangoHoy();
 
     const asignacion = await this.prisma.asignacion_diaria.findFirst({
-      where: {
-        UNIDAD: autobus.numeroEconomico,
-        FECHA: { gte: inicioDia, lte: finDia },
-      },
+      where: { UNIDAD: numeroEconomico, FECHA: { gte: inicioDia, lte: finDia } },
     });
     if (!asignacion) return undefined;
 
-    // Buscamos la ruta
     const ruta = await this.prisma.cat_ruta.findFirst({
       where: { nombre: asignacion.LINEA?.toString() },
       select: { idRuta: true },
@@ -107,57 +110,202 @@ export class TicketsService {
     return ruta?.idRuta;
   }
 
+  /**
+   * Nuevo: resuelve numeroEconomico directo de cat_autobus.
+   * Antes esto se repetía dentro de resolverIdRuta sin guardarse en el ticket;
+   * ahora lo separamos porque bin_ticket.numeroeconomico también necesita llenarse.
+   */
+  private async resolverNumeroEconomico(idautobus?: string): Promise<string | undefined> {
+    if (!idautobus) return undefined;
+    const autobus = await this.prisma.cat_autobus.findUnique({
+      where: { idAutobus: idautobus },
+      select: { numeroEconomico: true },
+    });
+    return autobus?.numeroEconomico ?? undefined;
+  }
 
-  async crearTicket(dto: CrearTicketDto, usuario: string) {
-    const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
-    const idRutaFinal = await this.resolverIdRuta(dto.idruta, dto.idautobus);
+  /**
+   * Nuevo: replica la fórmula de AppSheet
+   * any(SELECT(asignacionDiaria[OPERADOR], AND([UNIDAD]=numeroEconomico, [FECHA]=TODAY())))
+   *
+   * OPERADOR en tu tabla es texto libre, sin llave foránea real a `conductores` todavía —
+   * por eso idoperador y nombreoperador terminan siendo el mismo valor. Si me confirmas
+   * la columna que conecta con `conductores`, esto se puede separar correctamente.
+   */
+  private async resolverOperador(
+    numeroEconomico?: string,
+  ): Promise<{ idoperador?: string; nombreoperador?: string }> {
+    if (!numeroEconomico) return {};
 
+    const { inicioDia, finDia } = this.rangoHoy();
+
+    const asignacion = await this.prisma.asignacion_diaria.findFirst({
+      where: { UNIDAD: numeroEconomico, FECHA: { gte: inicioDia, lte: finDia } },
+      select: { OPERADOR: true },
+    });
+
+    return {
+      idoperador: asignacion?.OPERADOR ?? undefined,
+      nombreoperador: asignacion?.OPERADOR ?? undefined,
+    };
+  }
+
+  /**
+   * Nuevo: reemplaza el subquery manual de AppSheet
+   * any(select(catDispositivo[idDispositivoT], [idDispositivo]=[_THISROW].[idDispositivo]))
+   * Ahora que tu schema tiene la relación real cat_dispositivo -> cat_dispositivo_t,
+   * esto es una consulta normal y tipada, no un SELECT crudo.
+   */
+  private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
+    if (!iddispositivo) return undefined;
+    const dispositivo = await this.prisma.cat_dispositivo.findUnique({
+      where: { idDispositivo: iddispositivo },
+      select: { idDispositivoT: true },
+    });
+    return dispositivo?.idDispositivoT ?? undefined;
+  }
+
+  private rangoHoy() {
+    const ahora = new Date();
+    return {
+      inicioDia: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()),
+      finDia: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59),
+    };
+  }
+
+  /**
+   * Genera un folio real y único usando una secuencia de Postgres — reemplaza el
+   * `folio: ''` que rompía en el segundo insert por violar el unique constraint.
+   * Requiere correr una vez en tu base:
+   *   CREATE SEQUENCE IF NOT EXISTS bin_ticket_num_folio_seq;
+   */
+  private async generarFolio(): Promise<{ num_folio: number; folio: string }> {
+    const resultado = await this.prisma.$queryRaw<{ siguiente: bigint }[]>(
+      Prisma.sql`SELECT nextval('bin_ticket_num_folio_seq') as siguiente`,
+    );
+    const numFolio = Number(resultado[0].siguiente);
+    return { num_folio: numFolio, folio: `T-${numFolio.toString().padStart(6, '0')}` };
+  }
+
+  /**
+   * Inserción compartida entre folio normal y folio de mantenimiento.
+   * Aquí se resuelven TODOS los campos derivados server-side — el cliente
+   * (app/web) ya no necesita mandarlos ni duplicar esta lógica de negocio.
+   */
+  private async crearTicketBase(
+    campos: {
+      idautobus?: string;
+      idruta?: string;
+      iddispositivo?: string;
+      idfalla?: string;
+      idcategoria?: string;
+      idprioridad?: string;
+      idreporta?: string;
+      comentarios?: string;
+      idempresa: string;
+      idtecnico?: string;
+      tiporeparacion?: string;
+    },
+    usuario: string,
+  ) {
     const ahora = new Date();
     const soloFecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+    const numeroeconomico = await this.resolverNumeroEconomico(campos.idautobus);
+    const idRutaFinal = await this.resolverIdRuta(campos.idruta, numeroeconomico);
+    const { idoperador, nombreoperador } = await this.resolverOperador(numeroeconomico);
+    const iddispositivot = await this.resolverIdDispositivoT(campos.iddispositivo);
+    const { num_folio, folio } = await this.generarFolio();
 
     try {
       return await this.prisma.bin_ticket.create({
         data: {
           idticket: randomUUID(),
+          folio,
+          num_folio,
           fecha: soloFecha,
           fechahora: ahora,
-          idautobus: dto.idautobus,
+          idautobus: campos.idautobus,
+          numeroeconomico,
           idruta: idRutaFinal,
-          idoperador: dto.idoperador,
-          iddispositivo: dto.iddispositivo,
-          idfalla: dto.idfalla,
-          idcategoria: dto.idcategoria,
-          idprioridad: dto.idprioridad,
-          idreporta: dto.idreporta,
-          comentarios: dto.comentarios,
-          estatusrep: 'ABI9e9uqgr',
+          idoperador,
+          nombreoperador,
+          iddispositivo: campos.iddispositivo,
+          iddispositivot,
+          idfalla: campos.idfalla,
+          idcategoria: campos.idcategoria,
+          idprioridad: campos.idprioridad,
+          idreporta: campos.idreporta,
+          idtecnico: campos.idtecnico,
+          tiporeparacion: campos.tiporeparacion,
+          comentarios: campos.comentarios,
+          idestado: ESTADO_ABIERTO_ID,
+          idempresa: campos.idempresa,
           creadopor: usuario,
           fechacreacion: ahora,
-          idempresa: idEmpresaFinal,
         },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
         throw new BadRequestException(
-          `Error de integridad: El identificador proporcionado no existe en el catálogo relacionado. (Referencia: ${error.meta?.field_name})`
+          `Error de integridad: El identificador proporcionado no existe en el catálogo relacionado. (Referencia: ${error.meta?.field_name})`,
         );
       }
       throw error;
     }
   }
 
+  async crearTicket(dto: CrearTicketDto, usuario: string) {
+    const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
+
+    return this.crearTicketBase(
+      {
+        idautobus: dto.idautobus,
+        iddispositivo: dto.iddispositivo,
+        idfalla: dto.idfalla,
+        idcategoria: dto.idcategoria,
+        idprioridad: dto.idprioridad,
+        idreporta: dto.idreporta,
+        comentarios: dto.comentarios,
+        idempresa: idEmpresaFinal,
+      },
+      usuario,
+    );
+  }
+
+  async crearFolioMantenimiento(
+    dto: CrearFolioMantenimientoDto,
+    idtecnico: string,
+    usuario: string,
+  ) {
+    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idtecnico);
+
+    return this.crearTicketBase(
+      {
+        idautobus: dto.idautobus,
+        iddispositivo: dto.iddispositivo,
+        idcategoria: dto.idcategoria,
+        comentarios: dto.comentarios,
+        idempresa: idEmpresaFinal,
+        idtecnico,
+        tiporeparacion: TIPO_MANTENIMIENTO_ID,
+      },
+      usuario,
+    );
+  }
 
   async listarPorTecnico(idtecnico: string) {
     return this.prisma.bin_ticket.findMany({
       where: {
         idtecnico,
-        estatusrep: { not: 'cerrado' },
+        idestado: { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] },
       },
       include: {
         cat_falla: true,
         cat_autobus: true,
         cat_prioridad: true,
-        cat_estado_r: true,
+        estado: true,
+        cat_dispositivo_t: true,
       },
       orderBy: { fechacreacion: 'desc' },
     });
@@ -171,8 +319,10 @@ export class TicketsService {
         cat_autobus: true,
         cat_categoria: true,
         cat_prioridad: true,
-        cat_estado_r: true,
+        estado: true,
         cat_tecnicos: true,
+        cat_dispositivo_t: true,
+        solicitud_refaccion: true,
       },
     });
 
@@ -188,34 +338,34 @@ export class TicketsService {
       where: { idticket },
       data: {
         idtecnico: dto.idtecnico,
-        estatusrep: 'en_proceso',
         modificadopor: usuario,
         fechamodificacion: new Date(),
       },
     });
   }
 
-  async cerrarTicket(idticket: string, dto: CerrarTicketDto, usuario: string) {
+  /**
+   * El técnico registra su reparación: crea el detalle Y somete el folio a
+   * validación de mesa de control (Abierto -> Validación MC).
+   */
+  async registrarReparacion(idticket: string, dto: CerrarTicketDto, usuario: string) {
     const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
-
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
-    
-    // Validar usando tu constante o el string exacto de la base de datos
-    if (ticket.estatusrep === 'FIN5c61e7' || ticket.estatusrep === 'cerrado') {
-      throw new BadRequestException('El ticket ya está cerrado');
+
+    if (ticket.idestado === ESTADO_FINALIZADO_ID) {
+      throw new BadRequestException('El ticket ya está finalizado');
+    }
+    if (ticket.idestado === ESTADO_VALIDACION_ID) {
+      throw new BadRequestException('El ticket ya está en validación de mesa de control');
     }
 
-    // 1. Instanciamos la fecha una SOLA VEZ para perfecta sincronía
     const ahora = new Date();
 
-    // Transacción: el ticket se cierra Y se crea el registro de detalle
     return this.prisma.$transaction(async (tx) => {
-      
-      const ticketCerrado = await tx.bin_ticket.update({
+      const ticketActualizado = await tx.bin_ticket.update({
         where: { idticket },
         data: {
-          estatusrep: 'FIN5c61e7', // O 'cerrado', dependiendo de tu catálogo real
-          fecharesolucion: ahora,
+          idestado: ESTADO_VALIDACION_ID,
           modificadopor: usuario,
           fechamodificacion: ahora,
         },
@@ -228,26 +378,94 @@ export class TicketsService {
           fechaHora: ahora,
           folio: ticket.folio,
           idAutobus: ticket.idautobus,
+          numeroeconomico: ticket.numeroeconomico, // reutilizado, no se vuelve a resolver
           idRuta: ticket.idruta,
           idDispositivo: ticket.iddispositivo,
+          idDispositivoT: ticket.iddispositivot, // reutilizado del ticket ya resuelto
           idFalla: ticket.idfalla,
           idCategoria: ticket.idcategoria,
+          idPrioridad: ticket.idprioridad,
           idTecnico: ticket.idtecnico,
-          // Datos que vienen del DTO:
           Diagnostico: dto.diagnostico,
           Reparacion: dto.reparacion,
           comentarios: dto.comentarios,
           imagen1: dto.imagen1,
           imagen2: dto.imagen2,
-          // Tiempos e información de sistema:
           fechaResolucion: ahora,
           creadoPor: usuario,
           fechaCreacion: ahora,
-          idEstado: 'reparado', // ¡Agregamos el estado que le corresponde al detalle!
+          idEstado: ESTADO_VALIDACION_ID,
         },
       });
 
-      return ticketCerrado;
+      return ticketActualizado;
+    });
+  }
+
+  /**
+   * Mesa de control valida: aprueba -> Finalizado. Rechaza -> regresa a Abierto.
+   */
+  async validarTicket(idticket: string, dto: ValidarTicketDto, usuario: string) {
+    const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    if (ticket.idestado !== ESTADO_VALIDACION_ID) {
+      throw new BadRequestException('El ticket no está en validación de mesa de control');
+    }
+
+    return this.prisma.bin_ticket.update({
+      where: { idticket },
+      data: {
+        idestado: dto.aprobado ? ESTADO_FINALIZADO_ID : ESTADO_ABIERTO_ID,
+        fecharesolucion: dto.aprobado ? new Date() : null,
+        modificadopor: usuario,
+        fechamodificacion: new Date(),
+        comentarios: dto.comentarioRechazo
+          ? `${ticket.comentarios ?? ''}\n[Rechazo MC]: ${dto.comentarioRechazo}`
+          : ticket.comentarios,
+      },
+    });
+  }
+
+  async marcarPendiente(idticket: string, usuario: string) {
+    const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    if ([ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID].includes(ticket.idestado ?? '')) {
+      throw new BadRequestException('No se puede marcar como pendiente un ticket finalizado o cancelado');
+    }
+
+    return this.prisma.bin_ticket.update({
+      where: { idticket },
+      data: { idestado: ESTADO_PENDIENTE_ID, modificadopor: usuario, fechamodificacion: new Date() },
+    });
+  }
+
+  async reanudarTicket(idticket: string, usuario: string) {
+    const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    if (ticket.idestado !== ESTADO_PENDIENTE_ID) {
+      throw new BadRequestException('El ticket no está en estado Pendiente');
+    }
+
+    return this.prisma.bin_ticket.update({
+      where: { idticket },
+      data: { idestado: ESTADO_ABIERTO_ID, modificadopor: usuario, fechamodificacion: new Date() },
+    });
+  }
+
+  async cancelarTicket(idticket: string, usuario: string) {
+    const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    if (ticket.idestado === ESTADO_FINALIZADO_ID) {
+      throw new BadRequestException('No se puede cancelar un ticket ya finalizado');
+    }
+
+    return this.prisma.bin_ticket.update({
+      where: { idticket },
+      data: { idestado: ESTADO_CANCELADO_ID, modificadopor: usuario, fechamodificacion: new Date() },
     });
   }
 }

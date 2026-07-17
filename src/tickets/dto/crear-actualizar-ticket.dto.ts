@@ -201,3 +201,23 @@ export class CrearTicketDto {
 
 
 }
+
+export class CrearFolioMantenimientoDto {
+  @IsString()
+  idautobus!: string;
+
+  @IsOptional()
+  @IsString()
+  idruta?: string;
+
+  @IsOptional()
+  @IsString()
+  iddispositivo?: string;
+
+  @IsOptional()
+  @IsString()
+  idcategoria?: string;
+
+  @IsString()
+  comentarios!: string; // aquí sí es obligatorio: qué mantenimiento se va a hacer
+}

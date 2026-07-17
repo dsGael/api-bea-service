@@ -12,7 +12,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('movimientos')
 export class MovimientosController {
-  constructor(private movimientosService: MovimientosService) {}
+  constructor(private readonly movimientosService: MovimientosService) {}
 
   @Post()
   @Roles('almacen', 'admin', 'superAdmin')
