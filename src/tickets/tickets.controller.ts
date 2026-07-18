@@ -1,116 +1,136 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Query, 
-  Req, 
-  UseGuards 
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Query,
+  Body,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
 import { CrearTicketDto ,CrearFolioMantenimientoDto} from './dto/crear-actualizar-ticket.dto';
 import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-// @UseGuards(JwtAuthGuard) // <-- Descomenta esto si usas protección por token
+@ApiTags('tickets')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tickets')
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
-  // ==========================================
-  // CONSULTAS (GET)
-  // ==========================================
+  // ── Listados ── van antes que cualquier ruta con :id, para que Nest no
+  // intente interpretar "todos" o "mantenimiento" como un idticket.
 
   @Get()
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin', 'almacen', 'consultas')
+  @ApiOperation({ summary: 'Lista todos los folios con filtros y paginación' })
   listarTodos(@Query() query: ListarTicketsQueryDto) {
     return this.ticketsService.listarTodos(query);
   }
 
   @Get('tecnico/:idtecnico')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @ApiOperation({ summary: 'Folios abiertos/en validación/pendientes asignados a un técnico' })
   listarPorTecnico(@Param('idtecnico') idtecnico: string) {
     return this.ticketsService.listarPorTecnico(idtecnico);
   }
 
-  @Get(':idticket')
-  obtenerPorId(@Param('idticket') idticket: string) {
-    return this.ticketsService.obtenerPorId(idticket);
-  }
-
-  // ==========================================
-  // CREACIÓN (POST)
-  // ==========================================
+  // ── Creación ──
 
   @Post()
-  crearTicket(@Body() dto: CrearTicketDto, @Req() req: any) {
-    // Ajusta req.user.idUsuario según cómo venga tu payload del JWT
-    const usuario = req.user?.idUsuario || 'SISTEMA'; 
-    return this.ticketsService.crearTicket(dto, usuario);
+  @Roles('superAdmin', 'admin', 'mesacontrol', 'capturista')
+  @ApiOperation({ summary: 'Crea un folio normal (reportado por falla)' })
+  crear(@Body() dto: CrearTicketDto, @CurrentUser() user: any) {
+    return this.ticketsService.crearTicket(dto, user.useremail);
   }
 
   @Post('mantenimiento')
-  crearFolioMantenimiento(
-    @Body() dto: CrearFolioMantenimientoDto, 
-    @Req() req: any
+  @Roles('tecnicojr', 'tecnicosinior')
+  @ApiOperation({ summary: 'Crea un folio de mantenimiento preventivo, auto-asignado al técnico' })
+  crearMantenimiento(
+    @Body() dto: CrearFolioMantenimientoDto,
+    @CurrentUser() user: any,
   ) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    // Asumimos que el idtecnico viene en el token del usuario logueado
-    const idtecnico = req.user?.idEmpleado || 'TEC_DEFAULT'; 
-    
-    return this.ticketsService.crearFolioMantenimiento(dto, idtecnico, usuario);
+    return this.ticketsService.crearFolioMantenimiento(dto, user.idtecnico, user.useremail);
   }
 
-  // ==========================================
-  // MODIFICACIÓN Y FLUJO DE ESTADOS (PATCH)
-  // ==========================================
 
-  @Patch(':idticket/asignar')
-  asignarTecnico(
-    @Param('idticket') idticket: string,
+  @Get(':id')
+  @Roles(
+    'tecnicojr',
+    'tecnicosinior',
+    'mesacontrol',
+    'supervisor',
+    'admin',
+    'superAdmin',
+    'almacen',
+    'consultas',
+  )
+  obtenerPorId(@Param('id') id: string) {
+    return this.ticketsService.obtenerPorId(id);
+  }
+
+  // ── Transiciones de estado ──
+
+  @Patch(':id/asignar')
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @ApiOperation({ summary: 'Asigna un técnico al folio (no cambia el estado)' })
+  asignar(
+    @Param('id') id: string,
     @Body() dto: AsignarTecnicoDto,
-    @Req() req: any
+    @CurrentUser() user: any,
   ) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.asignarTecnico(idticket, dto, usuario);
+    return this.ticketsService.asignarTecnico(id, dto, user.useremail);
   }
 
-  @Patch(':idticket/reparacion')
+  @Patch(':id/reparacion')
+  @Roles('tecnicojr', 'tecnicosinior')
+  @ApiOperation({ summary: 'Técnico registra su reparación: Abierto -> Validación MC' })
   registrarReparacion(
-    @Param('idticket') idticket: string,
+    @Param('id') id: string,
     @Body() dto: CerrarTicketDto,
-    @Req() req: any
+    @CurrentUser() user: any,
   ) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.registrarReparacion(idticket, dto, usuario);
+    return this.ticketsService.registrarReparacion(id, dto, user.useremail);
   }
 
-  @Patch(':idticket/validar')
-  validarTicket(
-    @Param('idticket') idticket: string,
+  @Patch(':id/validar')
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @ApiOperation({ summary: 'Mesa de control aprueba (Finalizado) o rechaza (regresa a Abierto)' })
+  validar(
+    @Param('id') id: string,
     @Body() dto: ValidarTicketDto,
-    @Req() req: any
+    @CurrentUser() user: any,
   ) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.validarTicket(idticket, dto, usuario);
+    return this.ticketsService.validarTicket(id, dto, user.useremail);
   }
 
-  @Patch(':idticket/pendiente')
-  marcarPendiente(@Param('idticket') idticket: string, @Req() req: any) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.marcarPendiente(idticket, usuario);
+  @Patch(':id/pendiente')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen')
+  @ApiOperation({ summary: 'Marca el folio como Pendiente por falta de refacción' })
+  marcarPendiente(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.marcarPendiente(id, user.useremail);
   }
 
-  @Patch(':idticket/reanudar')
-  reanudarTicket(@Param('idticket') idticket: string, @Req() req: any) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.reanudarTicket(idticket, usuario);
+  @Patch(':id/reanudar')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol')
+  @ApiOperation({ summary: 'Regresa el folio de Pendiente a Abierto' })
+  reanudar(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.reanudarTicket(id, user.useremail);
   }
 
-  @Patch(':idticket/cancelar')
-  cancelarTicket(@Param('idticket') idticket: string, @Req() req: any) {
-    const usuario = req.user?.idUsuario || 'SISTEMA';
-    return this.ticketsService.cancelarTicket(idticket, usuario);
+  @Patch(':id/cancelar')
+  @Roles('admin', 'superAdmin')
+  @ApiOperation({ summary: 'Cancela el folio (acción administrativa)' })
+  cancelar(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.cancelarTicket(id, user.useremail);
   }
 }

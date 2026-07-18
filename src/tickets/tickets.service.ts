@@ -3,20 +3,18 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogosService } from '../catalogos/catalogos.service';
 import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
-import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
+import { CerrarTicketDto ,ValidarTicketDto} from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
 import { Prisma } from '@prisma/client';
 
-// idestado — ids reales de tu catálogo cat_estado_r, única fuente de verdad del estado
 const ESTADO_ABIERTO_ID = 'ABI9e9uqgr';
 const ESTADO_VALIDACION_ID = 'VALID123';
 const ESTADO_FINALIZADO_ID = 'FIN5c61e7';
 const ESTADO_CANCELADO_ID = 'CANb911e';
 const ESTADO_PENDIENTE_ID = 'pdterefac';
 
-// Ajusta al id real de tu cat_tipo_reparacion para "mantenimiento"
-const TIPO_MANTENIMIENTO_ID = 'MANTENIMIENTO'; // <- reemplaza por el id real del catálogo
+const TIPO_MANTENIMIENTO_ID = 'pr3v3nt1v0';
 
 @Injectable()
 export class TicketsService {
@@ -60,8 +58,6 @@ export class TicketsService {
     };
   }
 
-  // ── Resolvers: cada uno reemplaza una fórmula que antes vivía en AppSheet ──
-
   private async resolverIdEmpresa(
     idempresa?: string,
     idreporta?: string,
@@ -88,9 +84,6 @@ export class TicketsService {
     throw new BadRequestException('El idempresa es obligatorio.');
   }
 
-  /**
-   * Igual que antes: busca la ruta asignada hoy a la unidad, vía asignacion_diaria.
-   */
   private async resolverIdRuta(idruta?: string, numeroEconomico?: string): Promise<string | undefined> {
     if (idruta) return idruta;
     if (!numeroEconomico) return undefined;
@@ -110,11 +103,6 @@ export class TicketsService {
     return ruta?.idRuta;
   }
 
-  /**
-   * Nuevo: resuelve numeroEconomico directo de cat_autobus.
-   * Antes esto se repetía dentro de resolverIdRuta sin guardarse en el ticket;
-   * ahora lo separamos porque bin_ticket.numeroeconomico también necesita llenarse.
-   */
   private async resolverNumeroEconomico(idautobus?: string): Promise<string | undefined> {
     if (!idautobus) return undefined;
     const autobus = await this.prisma.cat_autobus.findUnique({
@@ -124,14 +112,6 @@ export class TicketsService {
     return autobus?.numeroEconomico ?? undefined;
   }
 
-  /**
-   * Nuevo: replica la fórmula de AppSheet
-   * any(SELECT(asignacionDiaria[OPERADOR], AND([UNIDAD]=numeroEconomico, [FECHA]=TODAY())))
-   *
-   * OPERADOR en tu tabla es texto libre, sin llave foránea real a `conductores` todavía —
-   * por eso idoperador y nombreoperador terminan siendo el mismo valor. Si me confirmas
-   * la columna que conecta con `conductores`, esto se puede separar correctamente.
-   */
   private async resolverOperador(
     numeroEconomico?: string,
   ): Promise<{ idoperador?: string; nombreoperador?: string }> {
@@ -150,12 +130,6 @@ export class TicketsService {
     };
   }
 
-  /**
-   * Nuevo: reemplaza el subquery manual de AppSheet
-   * any(select(catDispositivo[idDispositivoT], [idDispositivo]=[_THISROW].[idDispositivo]))
-   * Ahora que tu schema tiene la relación real cat_dispositivo -> cat_dispositivo_t,
-   * esto es una consulta normal y tipada, no un SELECT crudo.
-   */
   private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
     if (!iddispositivo) return undefined;
     const dispositivo = await this.prisma.cat_dispositivo.findUnique({
@@ -173,25 +147,6 @@ export class TicketsService {
     };
   }
 
-  /**
-   * Genera un folio real y único usando una secuencia de Postgres — reemplaza el
-   * `folio: ''` que rompía en el segundo insert por violar el unique constraint.
-   * Requiere correr una vez en tu base:
-   *   CREATE SEQUENCE IF NOT EXISTS bin_ticket_num_folio_seq;
-   */
-  private async generarFolio(): Promise<{ num_folio: number; folio: string }> {
-    const resultado = await this.prisma.$queryRaw<{ siguiente: bigint }[]>(
-      Prisma.sql`SELECT nextval('bin_ticket_num_folio_seq') as siguiente`,
-    );
-    const numFolio = Number(resultado[0].siguiente);
-    return { num_folio: numFolio, folio: `T-${numFolio.toString().padStart(6, '0')}` };
-  }
-
-  /**
-   * Inserción compartida entre folio normal y folio de mantenimiento.
-   * Aquí se resuelven TODOS los campos derivados server-side — el cliente
-   * (app/web) ya no necesita mandarlos ni duplicar esta lógica de negocio.
-   */
   private async crearTicketBase(
     campos: {
       idautobus?: string;
@@ -215,14 +170,12 @@ export class TicketsService {
     const idRutaFinal = await this.resolverIdRuta(campos.idruta, numeroeconomico);
     const { idoperador, nombreoperador } = await this.resolverOperador(numeroeconomico);
     const iddispositivot = await this.resolverIdDispositivoT(campos.iddispositivo);
-    const { num_folio, folio } = await this.generarFolio();
 
     try {
       return await this.prisma.bin_ticket.create({
         data: {
           idticket: randomUUID(),
-          folio,
-          num_folio,
+          folio: '',
           fecha: soloFecha,
           fechahora: ahora,
           idautobus: campos.idautobus,

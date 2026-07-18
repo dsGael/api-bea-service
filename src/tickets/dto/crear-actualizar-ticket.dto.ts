@@ -51,7 +51,7 @@ export class CrearTicketDto {
 
   @IsOptional()
   @IsString()
-  iddispositivot?: string; //appsheet lo rellena desde any(select(catDispositivo[idDispositivoT],[idDispositivo]=[_THISROW].[idDispositivo]))
+  iddispositivot?: string;
 
   @IsString()
   idfalla!: string;
