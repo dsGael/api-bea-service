@@ -2,18 +2,21 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogosService } from '../catalogos/catalogos.service';
-import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
-import { CerrarTicketDto ,ValidarTicketDto} from './dto/cerrar-ticket.dto';
+import { CrearFolioMantenimientoDto,CrearTicketDto } from './dto/crear-actualizar-ticket.dto';
+import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
 import { Prisma } from '@prisma/client';
 
+// idestado — ids reales de tu catálogo cat_estado_r, única fuente de verdad del estado
 const ESTADO_ABIERTO_ID = 'ABI9e9uqgr';
 const ESTADO_VALIDACION_ID = 'VALID123';
 const ESTADO_FINALIZADO_ID = 'FIN5c61e7';
 const ESTADO_CANCELADO_ID = 'CANb911e';
 const ESTADO_PENDIENTE_ID = 'pdterefac';
 
+// Confirmado en tu trigger fn_generar_folio_ticket: este es el id real que
+// distingue mantenimiento preventivo (dispara el folio con prefijo "MTTO")
 const TIPO_MANTENIMIENTO_ID = 'pr3v3nt1v0';
 
 @Injectable()
@@ -58,10 +61,12 @@ export class TicketsService {
     };
   }
 
+  // ── Resolvers: cada uno reemplaza una fórmula que antes vivía en AppSheet ──
+
   private async resolverIdEmpresa(
     idempresa?: string,
     idreporta?: string,
-    idtecnico?: string,
+    idEmpleado?: string,
   ): Promise<string> {
     if (idempresa) return idempresa;
 
@@ -73,17 +78,20 @@ export class TicketsService {
       if (reporta?.idEmpresa) return reporta.idEmpresa;
     }
 
-    if (idtecnico) {
-      const tecnico = await this.prisma.cat_tecnicos.findUnique({
-        where: { idTecnico: idtecnico },
+    if (idEmpleado) {
+      const empleado = await this.prisma.cat_empleados.findUnique({
+        where: { idEmpleado },
         select: { idEmpresa: true },
       });
-      if (tecnico?.idEmpresa) return tecnico.idEmpresa;
+      if (empleado?.idEmpresa) return empleado.idEmpresa;
     }
 
     throw new BadRequestException('El idempresa es obligatorio.');
   }
 
+  /**
+   * Igual que antes: busca la ruta asignada hoy a la unidad, vía asignacion_diaria.
+   */
   private async resolverIdRuta(idruta?: string, numeroEconomico?: string): Promise<string | undefined> {
     if (idruta) return idruta;
     if (!numeroEconomico) return undefined;
@@ -103,6 +111,11 @@ export class TicketsService {
     return ruta?.idRuta;
   }
 
+  /**
+   * Nuevo: resuelve numeroEconomico directo de cat_autobus.
+   * Antes esto se repetía dentro de resolverIdRuta sin guardarse en el ticket;
+   * ahora lo separamos porque bin_ticket.numeroeconomico también necesita llenarse.
+   */
   private async resolverNumeroEconomico(idautobus?: string): Promise<string | undefined> {
     if (!idautobus) return undefined;
     const autobus = await this.prisma.cat_autobus.findUnique({
@@ -112,6 +125,14 @@ export class TicketsService {
     return autobus?.numeroEconomico ?? undefined;
   }
 
+  /**
+   * Nuevo: replica la fórmula de AppSheet
+   * any(SELECT(asignacionDiaria[OPERADOR], AND([UNIDAD]=numeroEconomico, [FECHA]=TODAY())))
+   *
+   * OPERADOR en tu tabla es texto libre, sin llave foránea real a `conductores` todavía —
+   * por eso idoperador y nombreoperador terminan siendo el mismo valor. Si me confirmas
+   * la columna que conecta con `conductores`, esto se puede separar correctamente.
+   */
   private async resolverOperador(
     numeroEconomico?: string,
   ): Promise<{ idoperador?: string; nombreoperador?: string }> {
@@ -130,6 +151,12 @@ export class TicketsService {
     };
   }
 
+  /**
+   * Nuevo: reemplaza el subquery manual de AppSheet
+   * any(select(catDispositivo[idDispositivoT], [idDispositivo]=[_THISROW].[idDispositivo]))
+   * Ahora que tu schema tiene la relación real cat_dispositivo -> cat_dispositivo_t,
+   * esto es una consulta normal y tipada, no un SELECT crudo.
+   */
   private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
     if (!iddispositivo) return undefined;
     const dispositivo = await this.prisma.cat_dispositivo.findUnique({
@@ -147,6 +174,17 @@ export class TicketsService {
     };
   }
 
+  /**
+   * Genera un folio real y único usando una secuencia de Postgres — reemplaza el
+   * `folio: ''` que rompía en el segundo insert por violar el unique constraint.
+   * Requiere correr una vez en tu base:
+   *   CREATE SEQUENCE IF NOT EXISTS bin_ticket_num_folio_seq;
+   */
+  /**
+   * Inserción compartida entre folio normal y folio de mantenimiento.
+   * Aquí se resuelven TODOS los campos derivados server-side — el cliente
+   * (app/web) ya no necesita mandarlos ni duplicar esta lógica de negocio.
+   */
   private async crearTicketBase(
     campos: {
       idautobus?: string;
@@ -175,6 +213,9 @@ export class TicketsService {
       return await this.prisma.bin_ticket.create({
         data: {
           idticket: randomUUID(),
+          // folio y num_folio quedan vacíos a propósito: el trigger
+          // fn_generar_folio_ticket() de tu base los resuelve en el INSERT,
+          // con la lógica real de prefijos por empresa/tipo de reparación.
           folio: '',
           fecha: soloFecha,
           fechahora: ahora,
@@ -228,10 +269,10 @@ export class TicketsService {
 
   async crearFolioMantenimiento(
     dto: CrearFolioMantenimientoDto,
-    idtecnico: string,
+    idEmpleado: string,
     usuario: string,
   ) {
-    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idtecnico);
+    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idEmpleado);
 
     return this.crearTicketBase(
       {
@@ -240,7 +281,7 @@ export class TicketsService {
         idcategoria: dto.idcategoria,
         comentarios: dto.comentarios,
         idempresa: idEmpresaFinal,
-        idtecnico,
+        idtecnico: idEmpleado, // la columna se sigue llamando idtecnico, ahora guarda idEmpleado
         tiporeparacion: TIPO_MANTENIMIENTO_ID,
       },
       usuario,

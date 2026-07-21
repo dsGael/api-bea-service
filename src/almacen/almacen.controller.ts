@@ -15,25 +15,25 @@ export class AlmacenController {
   constructor(private readonly almacenService: AlmacenService) {}
 
   @Get()
-  @Roles('almacen', 'mesacontrol', 'admin', 'superAdmin')
+  @Roles('almacen', 'mesacontrol', 'admin', 'superadmin')
   listar() {
     return this.almacenService.listar();
   }
 
   @Get(':id')
-  @Roles('almacen', 'mesacontrol', 'admin', 'superAdmin')
+  @Roles('almacen', 'mesacontrol', 'admin', 'superadmin')
   obtenerPorId(@Param('id') id: string) {
     return this.almacenService.obtenerPorId(id);
   }
 
   @Post()
-  @Roles('admin', 'superAdmin', 'almacen')
+  @Roles('admin', 'superadmin', 'almacen')
   crear(@Body() dto: CrearAlmacenDto, @CurrentUser() user: any) {
     return this.almacenService.crear(dto, user.useremail);
   }
 
   @Patch(':id')
-  @Roles('admin', 'superAdmin', 'almacen')
+  @Roles('admin', 'superadmin', 'almacen')
   actualizar(
     @Param('id') id: string,
     @Body() dto: ActualizarAlmacenDto,

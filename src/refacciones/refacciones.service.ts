@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MovimientosService } from '../almacen/movimientos.service';
-import { ActualizarEstadoSolicitudDto, CrearSolicitudDto } from './dto/crear-actualizar-solicitud.dto';
-import { randomUUID } from 'crypto';
+import {ActualizarEstadoSolicitudDto, CrearSolicitudDto, } from './dto/crear-actualizar-solicitud.dto';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class RefaccionesService {
@@ -11,14 +11,14 @@ export class RefaccionesService {
     private movimientos: MovimientosService,
   ) {}
 
-  crear(dto: CrearSolicitudDto, idTecnico: string) {
+  crear(dto: CrearSolicitudDto, idEmpleado: string) {
     return this.prisma.solicitud_refaccion.create({
       data: {
         idSolicitud: randomUUID(),
         idticket: dto.idticket,
         idDispositivo: dto.idDispositivo,
         cantidad: dto.cantidad ?? 1,
-        idTecnico,
+        idTecnico: idEmpleado, // la columna se sigue llamando idTecnico, ahora guarda idEmpleado
         estado: 'pendiente',
         imagen: dto.imagen,
         fecha: new Date(),
@@ -26,9 +26,9 @@ export class RefaccionesService {
     });
   }
 
-  listarPorTecnico(idTecnico: string) {
+  listarPorTecnico(idEmpleado: string) {
     return this.prisma.solicitud_refaccion.findMany({
-      where: { idTecnico },
+      where: { idTecnico: idEmpleado },
       include: { cat_dispositivo_t: true, bin_ticket: true },
       orderBy: { fecha: 'desc' },
     });
@@ -37,7 +37,7 @@ export class RefaccionesService {
   listarTodas(estado?: string) {
     return this.prisma.solicitud_refaccion.findMany({
       where: estado ? { estado } : undefined,
-      include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },
+      include: { cat_dispositivo_t: true, bin_ticket: true, cat_empleados: true },
       orderBy: { fecha: 'desc' },
     });
   }
@@ -52,8 +52,6 @@ export class RefaccionesService {
     });
     if (!solicitud) throw new NotFoundException('Solicitud no encontrada');
 
-    // Si se marca como entregada, además de cambiar el estado, se descuenta
-    // inventario real del almacén — mismo patrón de transacción que ya usamos
     if (dto.estado === 'entregada') {
       if (!dto.idAlmacen) {
         throw new BadRequestException('idAlmacen es requerido para marcar como entregada');

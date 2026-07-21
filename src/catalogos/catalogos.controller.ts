@@ -26,14 +26,14 @@ export class CatalogosController {
 
     @Post('fallas')
     @UseGuards(RolesGuard)
-    @Roles('superAdmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
+    @Roles('superadmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
     crearFalla(@Body() dto: CrearFallaDto, @CurrentUser() user: any) {
     return this.catalogosService.crearFalla(dto, user.useremail);
     }
     
     @Patch('fallas/:id')
     @UseGuards(RolesGuard)
-    //@Roles('superAdmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
+    //@Roles('superadmin', 'admin', 'mesacontrol', 'tecnicojr', 'tecnicosinior')
     actualizarFalla(
     @Param('id') id: string,
     @Body() dto:ActualizarFallaDto,

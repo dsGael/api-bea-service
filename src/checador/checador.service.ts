@@ -1,32 +1,29 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChecarDto } from './dto/checar.dto';
 
 @Injectable()
 export class ChecadorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
   async checar(dto: ChecarDto) {
-    // 1. Si mandaron GPS, validamos que esté dentro de la geocerca asignada al técnico
     if (dto.gps) {
       await this.validarGeocerca(dto.idUsuario, dto.gps.lat, dto.gps.lng);
     }
 
     const idChecador = randomUUID();
     const idgeocerca = dto.gps
-      ? await this.obtenerIdGeocercaTecnico(dto.idUsuario)
+      ? await this.obtenerIdGeocercaEmpleado(dto.idUsuario)
       : null;
 
-    // 2. Insertamos el checado crudo — el trigger de Postgres calcula
-    //    tipo, Movimiento, HoraEntrada/HoraSalida, horasLaboradas, minutos_retardo, etc.
     await this.prisma.checador.create({
       data: {
         idChecador,
-        idUsuario: dto.idUsuario,
+        idUsuario: dto.idUsuario, // ahora es literal cat_usuarios.idUsuario
         nombre: dto.nombre,
-        hora: new Date(`1970-01-01T${dto.hora}`), // Prisma necesita un Date para columnas @db.Time
+        hora: new Date(`1970-01-01T${dto.hora}`),
         fecha: new Date(dto.fecha_hora),
         fecha_hora: new Date(dto.fecha_hora),
         gps: dto.gps ? `${dto.gps.lat},${dto.gps.lng}` : null,
@@ -35,34 +32,28 @@ export class ChecadorService {
       },
     });
 
-    // 3. Releemos el registro ya procesado por el trigger
-    const resultado = await this.prisma.checador.findUnique({ where: { idChecador } });
-
-    return resultado;
+    return this.prisma.checador.findUnique({ where: { idChecador } });
   }
 
-  private async obtenerIdGeocercaTecnico(idUsuario: string): Promise<number | null> {
-    const usuario = await this.prisma.cat_usuario.findUnique({
+  /**
+   * Antes eran dos saltos: cat_usuario -> idtecnico -> cat_tecnicos.idGeocerca.
+   * Con el schema nuevo, cat_usuarios ya está vinculado 1:1 a cat_empleados,
+   * así que es un solo join.
+   */
+  private async obtenerIdGeocercaEmpleado(idUsuario: string): Promise<number | null> {
+    const usuario = await this.prisma.cat_usuarios.findUnique({
       where: { idUsuario },
-      select: { idtecnico: true },
+      select: { cat_empleados: { select: { idGeocerca: true } } },
     });
 
-    if (!usuario?.idtecnico) return null;
-
-    const tecnico = await this.prisma.cat_tecnicos.findUnique({
-      where: { idTecnico: usuario.idtecnico },
-      select: { idGeocerca: true },
-    });
-
-    return tecnico?.idGeocerca ?? null;
+    return usuario?.cat_empleados?.idGeocerca ?? null;
   }
 
   private async validarGeocerca(idUsuario: string, lat: number, lng: number) {
-    const idGeocerca = await this.obtenerIdGeocercaTecnico(idUsuario);
+    const idGeocerca = await this.obtenerIdGeocercaEmpleado(idUsuario);
 
     if (!idGeocerca) {
-      // El técnico no tiene geocerca asignada — decides si esto bloquea
-      // o solo se registra sin validar. Por ahora, dejamos pasar.
+      // El empleado no tiene geocerca asignada — se deja pasar sin validar
       return;
     }
 
@@ -83,7 +74,6 @@ export class ChecadorService {
     if (dentro === undefined) {
       throw new BadRequestException('Geocerca asignada no encontrada');
     }
-
     if (!dentro) {
       throw new ForbiddenException('Fuera del área permitida para checar');
     }

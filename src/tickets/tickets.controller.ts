@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
-import { CrearTicketDto ,CrearFolioMantenimientoDto} from './dto/crear-actualizar-ticket.dto';
+import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
 import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
@@ -30,14 +30,14 @@ export class TicketsController {
   // intente interpretar "todos" o "mantenimiento" como un idticket.
 
   @Get()
-  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin', 'almacen', 'consultas')
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superadmin', 'almacen', 'consultas')
   @ApiOperation({ summary: 'Lista todos los folios con filtros y paginación' })
   listarTodos(@Query() query: ListarTicketsQueryDto) {
     return this.ticketsService.listarTodos(query);
   }
 
   @Get('tecnico/:idtecnico')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'supervisor', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Folios abiertos/en validación/pendientes asignados a un técnico' })
   listarPorTecnico(@Param('idtecnico') idtecnico: string) {
     return this.ticketsService.listarPorTecnico(idtecnico);
@@ -46,22 +46,23 @@ export class TicketsController {
   // ── Creación ──
 
   @Post()
-  @Roles('superAdmin', 'admin', 'mesacontrol', 'capturista')
+  @Roles('superadmin', 'admin', 'mesacontrol', 'capturista', 'almacen', 'tecnicojr', 'tecnicosinior')
   @ApiOperation({ summary: 'Crea un folio normal (reportado por falla)' })
   crear(@Body() dto: CrearTicketDto, @CurrentUser() user: any) {
-    return this.ticketsService.crearTicket(dto, user.useremail);
+    return this.ticketsService.crearTicket(dto, user.idUsuario);
   }
 
   @Post('mantenimiento')
-  @Roles('tecnicojr', 'tecnicosinior')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
   @ApiOperation({ summary: 'Crea un folio de mantenimiento preventivo, auto-asignado al técnico' })
   crearMantenimiento(
     @Body() dto: CrearFolioMantenimientoDto,
     @CurrentUser() user: any,
   ) {
-    return this.ticketsService.crearFolioMantenimiento(dto, user.idtecnico, user.useremail);
+    return this.ticketsService.crearFolioMantenimiento(dto, user.idEmpleado, user.idUsuario);
   }
 
+  // ── Detalle ── después de las rutas literales de arriba
 
   @Get(':id')
   @Roles(
@@ -70,7 +71,7 @@ export class TicketsController {
     'mesacontrol',
     'supervisor',
     'admin',
-    'superAdmin',
+    'superadmin',
     'almacen',
     'consultas',
   )
@@ -81,56 +82,56 @@ export class TicketsController {
   // ── Transiciones de estado ──
 
   @Patch(':id/asignar')
-  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superadmin', 'almacen')
   @ApiOperation({ summary: 'Asigna un técnico al folio (no cambia el estado)' })
   asignar(
     @Param('id') id: string,
     @Body() dto: AsignarTecnicoDto,
     @CurrentUser() user: any,
   ) {
-    return this.ticketsService.asignarTecnico(id, dto, user.useremail);
+    return this.ticketsService.asignarTecnico(id, dto, user.idUsuario);
   }
 
   @Patch(':id/reparacion')
-  @Roles('tecnicojr', 'tecnicosinior')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Técnico registra su reparación: Abierto -> Validación MC' })
   registrarReparacion(
     @Param('id') id: string,
     @Body() dto: CerrarTicketDto,
     @CurrentUser() user: any,
   ) {
-    return this.ticketsService.registrarReparacion(id, dto, user.useremail);
+    return this.ticketsService.registrarReparacion(id, dto, user.idUsuario);
   }
 
   @Patch(':id/validar')
-  @Roles('mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @Roles('mesacontrol', 'supervisor', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Mesa de control aprueba (Finalizado) o rechaza (regresa a Abierto)' })
   validar(
     @Param('id') id: string,
     @Body() dto: ValidarTicketDto,
     @CurrentUser() user: any,
   ) {
-    return this.ticketsService.validarTicket(id, dto, user.useremail);
+    return this.ticketsService.validarTicket(id, dto, user.idUsuario);
   }
 
   @Patch(':id/pendiente')
-  @Roles('tecnicojr', 'tecnicosinior', 'almacen')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol')
   @ApiOperation({ summary: 'Marca el folio como Pendiente por falta de refacción' })
   marcarPendiente(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.ticketsService.marcarPendiente(id, user.useremail);
+    return this.ticketsService.marcarPendiente(id, user.idUsuario);
   }
 
   @Patch(':id/reanudar')
   @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol')
   @ApiOperation({ summary: 'Regresa el folio de Pendiente a Abierto' })
   reanudar(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.ticketsService.reanudarTicket(id, user.useremail);
+    return this.ticketsService.reanudarTicket(id, user.idUsuario);
   }
 
   @Patch(':id/cancelar')
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superadmin', 'mesacontrol')
   @ApiOperation({ summary: 'Cancela el folio (acción administrativa)' })
   cancelar(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.ticketsService.cancelarTicket(id, user.useremail);
+    return this.ticketsService.cancelarTicket(id, user.idUsuario);
   }
 }

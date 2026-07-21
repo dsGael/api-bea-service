@@ -15,13 +15,13 @@ export class MovimientosController {
   constructor(private readonly movimientosService: MovimientosService) {}
 
   @Post()
-  @Roles('almacen', 'admin', 'superAdmin')
+  @Roles('almacen', 'admin', 'superadmin')
   registrar(@Body() dto: RegistrarMovimientoDto, @CurrentUser() user: any) {
     return this.movimientosService.registrarMovimiento(dto, user.useremail);
   }
 
   @Get()
-  @Roles('almacen', 'mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @Roles('almacen', 'mesacontrol', 'supervisor', 'admin', 'superadmin')
   listar(
     @Query('idAlmacen') idAlmacen?: string,
     @Query('idDispositivo') idDispositivo?: string,
@@ -30,7 +30,7 @@ export class MovimientosController {
   }
 
   @Get('existencia')
-  @Roles('almacen', 'mesacontrol', 'supervisor', 'admin', 'superAdmin')
+  @Roles('almacen', 'mesacontrol', 'supervisor', 'admin', 'superadmin')
   existencia(
     @Query('idAlmacen') idAlmacen: string,
     @Query('idDispositivo') idDispositivo: string,
