@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MovimientosService } from '../almacen/movimientos.service';
-import {ActualizarEstadoSolicitudDto, CrearSolicitudDto, } from './dto/crear-actualizar-solicitud.dto';
-import { randomUUID } from 'node:crypto';
+import { CrearSolicitudDto,ActualizarEstadoSolicitudDto } from './dto/crear-actualizar-solicitud.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class RefaccionesService {
@@ -11,14 +11,14 @@ export class RefaccionesService {
     private movimientos: MovimientosService,
   ) {}
 
-  crear(dto: CrearSolicitudDto, idEmpleado: string) {
+  crear(dto: CrearSolicitudDto, idUsuarioApp: string) {
     return this.prisma.solicitud_refaccion.create({
       data: {
         idSolicitud: randomUUID(),
         idticket: dto.idticket,
         idDispositivo: dto.idDispositivo,
         cantidad: dto.cantidad ?? 1,
-        idTecnico: idEmpleado, // la columna se sigue llamando idTecnico, ahora guarda idEmpleado
+        idTecnico: idUsuarioApp, // la columna se sigue llamando idTecnico, ahora guarda idUsuarioApp
         estado: 'pendiente',
         imagen: dto.imagen,
         fecha: new Date(),
@@ -26,9 +26,9 @@ export class RefaccionesService {
     });
   }
 
-  listarPorTecnico(idEmpleado: string) {
+  listarPorTecnico(idUsuarioApp: string) {
     return this.prisma.solicitud_refaccion.findMany({
-      where: { idTecnico: idEmpleado },
+      where: { idTecnico: idUsuarioApp },
       include: { cat_dispositivo_t: true, bin_ticket: true },
       orderBy: { fecha: 'desc' },
     });
@@ -37,7 +37,7 @@ export class RefaccionesService {
   listarTodas(estado?: string) {
     return this.prisma.solicitud_refaccion.findMany({
       where: estado ? { estado } : undefined,
-      include: { cat_dispositivo_t: true, bin_ticket: true, cat_empleados: true },
+      include: { cat_dispositivo_t: true, bin_ticket: true, cat_usuarios_app: true },
       orderBy: { fecha: 'desc' },
     });
   }

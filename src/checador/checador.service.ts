@@ -15,13 +15,13 @@ export class ChecadorService {
 
     const idChecador = randomUUID();
     const idgeocerca = dto.gps
-      ? await this.obtenerIdGeocercaEmpleado(dto.idUsuario)
+      ? await this.obtenerIdGeocerca(dto.idUsuario)
       : null;
 
     await this.prisma.checador.create({
       data: {
         idChecador,
-        idUsuario: dto.idUsuario, // ahora es literal cat_usuarios.idUsuario
+        idUsuario: dto.idUsuario, // ahora es literal cat_usuarios_app.idUsuarioApp
         nombre: dto.nombre,
         hora: new Date(`1970-01-01T${dto.hora}`),
         fecha: new Date(dto.fecha_hora),
@@ -36,26 +36,21 @@ export class ChecadorService {
   }
 
   /**
-   * Antes eran dos saltos: cat_usuario -> idtecnico -> cat_tecnicos.idGeocerca.
-   * Con el schema nuevo, cat_usuarios ya está vinculado 1:1 a cat_empleados,
-   * así que es un solo join.
+   * idGeocerca ahora vive directo en cat_usuarios_app — un solo SELECT,
+   * sin ningún join. Antes eran hasta dos saltos (cat_usuario -> cat_tecnicos).
    */
-  private async obtenerIdGeocercaEmpleado(idUsuario: string): Promise<number | null> {
-    const usuario = await this.prisma.cat_usuarios.findUnique({
-      where: { idUsuario },
-      select: { cat_empleados: { select: { idGeocerca: true } } },
+  private async obtenerIdGeocerca(idUsuarioApp: string): Promise<number | null> {
+    const cuenta = await this.prisma.cat_usuarios_app.findUnique({
+      where: { idUsuarioApp },
+      select: { idGeocerca: true },
     });
-
-    return usuario?.cat_empleados?.idGeocerca ?? null;
+    return cuenta?.idGeocerca ?? null;
   }
 
-  private async validarGeocerca(idUsuario: string, lat: number, lng: number) {
-    const idGeocerca = await this.obtenerIdGeocercaEmpleado(idUsuario);
+  private async validarGeocerca(idUsuarioApp: string, lat: number, lng: number) {
+    const idGeocerca = await this.obtenerIdGeocerca(idUsuarioApp);
 
-    if (!idGeocerca) {
-      // El empleado no tiene geocerca asignada — se deja pasar sin validar
-      return;
-    }
+    if (!idGeocerca) return; // sin geocerca asignada, se deja pasar sin validar
 
     const resultado = await this.prisma.$queryRaw<{ dentro: boolean }[]>(
       Prisma.sql`
@@ -70,7 +65,6 @@ export class ChecadorService {
     );
 
     const dentro = resultado[0]?.dentro;
-
     if (dentro === undefined) {
       throw new BadRequestException('Geocerca asignada no encontrada');
     }
@@ -84,9 +78,7 @@ export class ChecadorService {
       where: {
         idUsuario,
         ...(desde &&
-          hasta && {
-            fecha_hora: { gte: new Date(desde), lte: new Date(hasta) },
-          }),
+          hasta && { fecha_hora: { gte: new Date(desde), lte: new Date(hasta) } }),
       },
       orderBy: { fecha_hora: 'desc' },
     });
@@ -95,7 +87,6 @@ export class ChecadorService {
   async listarHoy() {
     const inicioDia = new Date();
     inicioDia.setHours(0, 0, 0, 0);
-
     return this.prisma.checador.findMany({
       where: { fecha_hora: { gte: inicioDia } },
       orderBy: { fecha_hora: 'desc' },

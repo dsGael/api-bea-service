@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CatalogosService } from '../catalogos/catalogos.service';
-import { CrearFolioMantenimientoDto,CrearTicketDto } from './dto/crear-actualizar-ticket.dto';
+import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
 import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
@@ -66,7 +66,7 @@ export class TicketsService {
   private async resolverIdEmpresa(
     idempresa?: string,
     idreporta?: string,
-    idEmpleado?: string,
+    idUsuarioApp?: string,
   ): Promise<string> {
     if (idempresa) return idempresa;
 
@@ -78,12 +78,12 @@ export class TicketsService {
       if (reporta?.idEmpresa) return reporta.idEmpresa;
     }
 
-    if (idEmpleado) {
-      const empleado = await this.prisma.cat_empleados.findUnique({
-        where: { idEmpleado },
-        select: { idEmpresa: true },
+    if (idUsuarioApp) {
+      const cuenta = await this.prisma.cat_usuarios_app.findUnique({
+        where: { idUsuarioApp },
+        select: { cat_empleados: { select: { idEmpresa: true } } },
       });
-      if (empleado?.idEmpresa) return empleado.idEmpresa;
+      if (cuenta?.cat_empleados?.idEmpresa) return cuenta.cat_empleados.idEmpresa;
     }
 
     throw new BadRequestException('El idempresa es obligatorio.');
@@ -269,10 +269,10 @@ export class TicketsService {
 
   async crearFolioMantenimiento(
     dto: CrearFolioMantenimientoDto,
-    idEmpleado: string,
+    idUsuarioApp: string,
     usuario: string,
   ) {
-    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idEmpleado);
+    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idUsuarioApp);
 
     return this.crearTicketBase(
       {
@@ -281,7 +281,7 @@ export class TicketsService {
         idcategoria: dto.idcategoria,
         comentarios: dto.comentarios,
         idempresa: idEmpresaFinal,
-        idtecnico: idEmpleado, // la columna se sigue llamando idtecnico, ahora guarda idEmpleado
+        idtecnico: idUsuarioApp, // bin_ticket.idtecnico -> cat_usuarios_app.idUsuarioApp
         tiporeparacion: TIPO_MANTENIMIENTO_ID,
       },
       usuario,

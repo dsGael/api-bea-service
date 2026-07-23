@@ -6,21 +6,22 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
-    const jwtSecret = configService.get<string>('JWT_SECRET')!;
-
+    const secret = configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET no está definido en las variables de entorno');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: jwtSecret,
+      secretOrKey: secret,
     });
   }
 
-  async validate(payload: any) {    
+  async validate(payload: any) {
     return {
-      idUsuario: payload.sub,
-      useremail: payload.useremail,
+      idUsuarioApp: payload.sub, // identidad para FKs de "quién es el técnico"
+      idEmpleado: payload.idEmpleado, // identidad para datos de RH/empresa
       perfil: payload.perfil,
-      idtecnico: payload.idtecnico,
     };
   }
 }
