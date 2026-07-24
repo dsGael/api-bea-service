@@ -37,7 +37,7 @@ export class RefaccionesService {
   listarTodas(estado?: string) {
     return this.prisma.solicitud_refaccion.findMany({
       where: estado ? { estado } : undefined,
-      include: { cat_dispositivo_t: true, bin_ticket: true, cat_usuarios_app: true },
+      include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },
       orderBy: { fecha: 'desc' },
     });
   }

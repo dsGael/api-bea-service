@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsNumber, IsArray, ValidateNested } from 'class-validator';
 
 export class CheckadaGpsDto {
   @IsNumber()
@@ -27,4 +28,30 @@ export class ChecarDto {
   @IsOptional()
   @IsString()
   deviceUUID?: string;
+}
+
+
+export class AjusteChecadaDto {
+  @IsOptional()
+  @IsString()
+  HoraEntrada?: string; // Puedes enviarlo como Date ISO o String según lo manejes
+
+  @IsOptional()
+  @IsString()
+  HoraSalida?: string;
+
+  @IsOptional()
+  @IsNumber()
+  horasLaboradas?: number;
+
+  @IsOptional()
+  @IsString()
+  Informativo?: string; // Aquí guardamos el motivo: "Ajuste manual por falla de app"
+}
+
+export class SyncChecadasDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecarDto)
+  checadas!: ChecarDto[];
 }

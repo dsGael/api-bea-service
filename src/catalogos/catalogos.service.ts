@@ -56,7 +56,7 @@ export class CatalogosService {
     }
 
     async crearTipoDispositivo(dto: any, usuario: string) {
-        const tipo = await this.prisma.cat_dispositivo_t.create({
+        await this.prisma.cat_dispositivo_t.create({
             data: {
             idDispositivoT: randomUUID(),
             nombre: dto.nombre,

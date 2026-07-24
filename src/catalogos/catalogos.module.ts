@@ -5,7 +5,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 
 
 @Module({
-  imports: [CacheModule.register({ ttl: 300 })], // 5 minutos
+  imports: [CacheModule.register({ ttl: 3600 })], // 60 minutos
   controllers: [CatalogosController],
   providers: [CatalogosService],
   exports: [CatalogosService], 

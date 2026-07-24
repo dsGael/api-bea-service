@@ -15,7 +15,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const cuenta = await this.prisma.cat_usuarios_app.findFirst({
       where: {
-        OR: [{ idEmpleado: dto.identificador }, { useremail: dto.identificador }],
+        OR: [{ idEmpleado: dto.usuario }, { useremail: dto.usuario }],
       },
       include: { cat_empleados: true },
     });

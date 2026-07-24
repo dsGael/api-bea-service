@@ -7,7 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // Al llamar a super() con un objeto, bloqueamos la inyección automática 
     // de NestJS y satisfacemos la validación estricta de Prisma.
     super({
-      log: ['error'], // Puedes agregar 'query' aquí si quieres ver los SQL en consola después
+      log: ['query','info','warn','error'], // Puedes agregar 'query' aquí si quieres ver los SQL en consola después
     });
   }
 
