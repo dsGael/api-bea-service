@@ -4,6 +4,6 @@ import { EnviosService } from './envios.service';
 
 @Module({
   controllers: [EnviosController],
-  providers: [EnviosService]
+  providers: [EnviosService],
 })
 export class EnviosModule {}
