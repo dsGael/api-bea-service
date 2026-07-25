@@ -62,10 +62,11 @@ export class RefaccionesService {
 
       await this.movimientos.registrarMovimiento(
         {
-          tipoMovimiento: 'asignacion',
+          tipoMovimiento: 'entrada',
           idDispositivo: solicitud.idDispositivo,
           cantidad: Number(solicitud.cantidad ?? 1),
           idAlmacenOrigen: dto.idAlmacen,
+          idAlmacenDestino: dto.idAlmacen,
           comentario: `Entrega de solicitud ${idSolicitud}`,
         },
         usuario,

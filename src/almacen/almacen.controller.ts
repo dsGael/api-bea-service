@@ -10,7 +10,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @ApiTags('almacen')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('almacenes')
+@Controller('almacen')
 export class AlmacenController {
   constructor(private readonly almacenService: AlmacenService) {}
 
@@ -41,4 +41,7 @@ export class AlmacenController {
   ) {
     return this.almacenService.actualizar(id, dto, user.useremail);
   }
+
+
+
 }

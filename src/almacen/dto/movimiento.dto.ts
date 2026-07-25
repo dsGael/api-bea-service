@@ -1,27 +1,33 @@
 import { IsString, IsInt, IsOptional, IsIn, Min } from 'class-validator';
 
 export class RegistrarMovimientoDto {
-  @IsIn(['entrada', 'salida', 'traspaso', 'asignacion'])
-  tipoMovimiento!: 'entrada' | 'salida' | 'traspaso' | 'asignacion';
+  @IsIn(['entrada', 'salida'])
+  tipoMovimiento!: 'entrada' | 'salida';
 
   @IsString()
-  idDispositivo!: string; // idDispositivoT — tipo de dispositivo, no unidad
+  idDispositivo!: string;
 
   @IsInt()
   @Min(1)
   cantidad!: number;
 
-  @IsOptional()
-  @IsString()
-  idAlmacenOrigen?: string; // requerido para salida/traspaso/asignacion
+  @IsString() // <- Obligatorio
+  idAlmacenOrigen!: string; 
 
-  @IsOptional()
-  @IsString()
-  idAlmacenDestino?: string; // requerido para entrada/traspaso
+  @IsString() // <- Obligatorio
+  idAlmacenDestino!: string; 
 
   @IsOptional()
   @IsString()
   numeroSerie?: string;
+
+  @IsOptional()
+  @IsString()
+  imei1?: string;
+
+  @IsOptional()
+  @IsString()
+  imei2?: string;
 
   @IsOptional()
   @IsString()

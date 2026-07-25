@@ -37,4 +37,7 @@ export class AlmacenService {
       data: { ...dto, modificadoPor, fechaModificacion: new Date() },
     });
   }
+
+  
+
 }
