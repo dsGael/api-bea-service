@@ -6,7 +6,11 @@ const PAQUETERIAS_PERMITIDAS = [
   'PAQUETE EXPRESS', 'SERVICIO PRIVADO', 'TRES GUERRAS', 'UPS'
 ];
 
-export class CrearEnvioDto {
+const  PROYECTOS_PERMITIDOS = [
+  'Inst.HMO367', 'Inst.OBR20', 'BeaSonora', 'Personal'
+];
+
+export class  CrearEnvioDto {
   @IsOptional()
   @IsString()
   folioEnvio?: string;
@@ -33,6 +37,7 @@ export class CrearEnvioDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(PROYECTOS_PERMITIDOS, { message: 'Proyecto no válido' })
   proyecto?: string;
 
   @IsOptional()
@@ -45,7 +50,7 @@ export class CrearEnvioDto {
 
   @IsOptional()
   @IsString()
-  packingList?: string;
+  packingList?: string; //PDF del packing list
 }
 
 export class ActualizarEnvioDto extends PartialType(CrearEnvioDto) {}

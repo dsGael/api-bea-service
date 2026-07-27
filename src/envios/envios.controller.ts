@@ -17,7 +17,6 @@ export class EnviosController {
   @Post()
   @Roles('almacen', 'mesacontrol', 'admin', 'superadmin')
   crear(@Body() dto: CrearEnvioDto, @CurrentUser() user: any) {
-    // Usamos useremail o el nombre del usuario según cómo venga tu token
     return this.enviosService.crear(dto, user.useremail);
   }
 

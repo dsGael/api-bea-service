@@ -12,9 +12,10 @@ import { NominaModule } from './nomina/nomina.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { OperacionesModule } from './operaciones/operaciones.module';
 
 @Module({
-  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule, UsuariosModule],
+  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule, UsuariosModule, OperacionesModule],
   controllers: [AppController],
   providers: [AppService],
 })
