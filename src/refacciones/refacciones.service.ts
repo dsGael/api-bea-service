@@ -11,7 +11,14 @@ export class RefaccionesService {
     private movimientos: MovimientosService,
   ) {}
 
-  crear(dto: CrearSolicitudDto, idUsuarioApp: string) {
+  async obtenerPorId(idSolicitud: string) {
+    return this.prisma.solicitud_refaccion.findUnique({
+      where: { idSolicitud },
+      include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },
+    });
+  }
+
+  async crear(dto: CrearSolicitudDto, idUsuarioApp: string) {
     return this.prisma.solicitud_refaccion.create({
       data: {
         idSolicitud: randomUUID(),
@@ -26,15 +33,15 @@ export class RefaccionesService {
     });
   }
 
-  listarPorTecnico(idUsuarioApp: string) {
+  async listarPorTicket(idTicket: string) {
     return this.prisma.solicitud_refaccion.findMany({
-      where: { idTecnico: idUsuarioApp },
-      include: { cat_dispositivo_t: true, bin_ticket: true },
+      where: { idticket: idTicket },
+      include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },
       orderBy: { fecha: 'desc' },
     });
   }
 
-  listarTodas(estado?: string) {
+  async listarTodas(estado?: string) {
     return this.prisma.solicitud_refaccion.findMany({
       where: estado ? { estado } : undefined,
       include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },

@@ -41,4 +41,10 @@ async cargarAsignacionesCSV(@UploadedFile() file: Express.Multer.File) {
     // Por defecto, que traiga las del día en curso si no le mandan fecha
     return this.operacionesService.listarAsignaciones(fecha);
   }
+
+  @Get('asignacion-diaria/hoy')
+  @Roles('admin', 'superadmin', 'mesacontrol', 'capturista') // O el rol del despachador
+  listarHoyAsignaciones() {
+    return this.operacionesService.asignacionDeHoy();
+  }
 }

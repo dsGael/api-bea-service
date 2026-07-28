@@ -12,28 +12,36 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('refacciones')
 export class RefaccionesController {
-  constructor(private refaccionesService: RefaccionesService) {}
+  constructor(private readonly refaccionesService: RefaccionesService) {}
 
   @Post()
-  @Roles('tecnicojr', 'tecnicosinior')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superadmin')
   crear(@Body() dto: CrearSolicitudDto, @CurrentUser() user: any) {
     return this.refaccionesService.crear(dto, user.idUsuarioApp);
   }
 
-  @Get('tecnico/:id')
-  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superAdmin')
-  listarPorTecnico(@Param('id') id: string) {
-    return this.refaccionesService.listarPorTecnico(id);
-  }
 
   @Get()
-  @Roles('almacen', 'mesacontrol', 'admin', 'superAdmin')
+  @Roles('almacen', 'mesacontrol', 'admin', 'superadmin')
   listarTodas(@Query('estado') estado?: string) {
     return this.refaccionesService.listarTodas(estado);
   }
 
+  @Get(':id')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superadmin')
+  obtenerPorId(@Param('id') id: string) {
+    return this.refaccionesService.obtenerPorId(id);
+  }
+
+  @Get('ticket/:id')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superadmin')
+  listarPorTicket(@Param('id') id: string) {
+    return this.refaccionesService.listarPorTicket(id);
+  }
+
+ 
   @Patch(':id/estado')
-  @Roles('almacen', 'admin', 'superAdmin')
+  @Roles('almacen', 'admin', 'superadmin')
   actualizarEstado(
     @Param('id') id: string,
     @Body() dto: ActualizarEstadoSolicitudDto,

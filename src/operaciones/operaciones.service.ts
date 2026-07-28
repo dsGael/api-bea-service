@@ -93,4 +93,16 @@ export class OperacionesService {
       orderBy: { HORA_SALIDA: 'asc' }, // Para ver quién sale primero
     });
   }
+
+  async asignacionDeHoy() {
+    const hoy = new Date();
+    const fechaHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    return this.prisma.asignacion_diaria.findMany({
+      where: {
+        FECHA: fechaHoy,
+      },
+      orderBy: { HORA_SALIDA: 'asc' },
+    });
+  }
 }
