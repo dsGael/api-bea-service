@@ -1,8 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'node:crypto';
-
-// Importamos todos los DTOs desde el archivo único
 import {
   CrearAutobusDto, ActualizarAutobusDto,
   CrearCarroceriaDto, ActualizarCarroceriaDto,
@@ -18,6 +16,8 @@ import {
   CrearRutaDto, ActualizarRutaDto,
   CrearSimsDvrDto, ActualizarSimsDvrDto,
   CrearSueldoDto, ActualizarSueldoDto,
+  CrearHorarioDto,
+  ActualizarHorarioDto,
 } from './dto/catalogos.dto';
 
 @Injectable()
@@ -36,10 +36,10 @@ export class CatalogosService {
       data: { idAutobus: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date().toISOString() } 
     });
   }
-  async actualizarAutobus(id: string, dto: ActualizarAutobusDto, usuario: string) {
+  async actualizarAutobus(id: string, dto: ActualizarAutobusDto) {
     return this.prisma.cat_autobus.update({ 
       where: { idAutobus: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date().toISOString() } 
+      data: { ...dto,   } 
     });
   }
 
@@ -51,10 +51,10 @@ export class CatalogosService {
       data: { idCarroceria: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarCarroceria(id: string, dto: ActualizarCarroceriaDto, usuario: string) {
+  async actualizarCarroceria(id: string, dto: ActualizarCarroceriaDto) {
     return this.prisma.cat_carroceria.update({ 
       where: { idCarroceria: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date().toISOString() } 
+      data: { ...dto,   } 
     });
   }
 
@@ -76,10 +76,25 @@ export class CatalogosService {
       data: { idCiudad: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarCiudad(id: string, dto: ActualizarCiudadDto, usuario: string) {
+  async actualizarCiudad(id: string, dto: ActualizarCiudadDto) {
     return this.prisma.cat_ciudad.update({ 
       where: { idCiudad: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date().toISOString() } 
+      data: { ...dto,   } 
+    });
+  }
+
+  // -- HORARIOS ---
+  async listarHorarios() { return this.prisma.cat_horarios.findMany({ orderBy: { horaEntrada: 'asc' } }); }
+  async obtenerHorario(id: string) { return this.prisma.cat_horarios.findUnique({ where: { idHorario: id } }); }
+  async crearHorario(dto:CrearHorarioDto, usuario: string) {
+    return this.prisma.cat_horarios.create({ 
+      data: { idHorario: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    });
+  }
+  async actualizarHorario(id: string, dto: ActualizarHorarioDto) {
+    return this.prisma.cat_horarios.update({ 
+      where: { idHorario: id }, 
+      data: { ...dto } 
     });
   }
 
@@ -101,10 +116,10 @@ export class CatalogosService {
       data: { idDiagnostico: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarDiagnostico(id: string, dto: ActualizarDiagnosticoDto, usuario: string) {
+  async actualizarDiagnostico(id: string, dto: ActualizarDiagnosticoDto) {
     return this.prisma.cat_diagnostico.update({ 
       where: { idDiagnostico: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date().toISOString() } 
+      data: { ...dto,   } 
     });
   }
 
@@ -116,10 +131,10 @@ export class CatalogosService {
       data: { idDispositivo: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarDispositivo(id: string, dto: ActualizarDispositivoDto, usuario: string) {
+  async actualizarDispositivo(id: string, dto: ActualizarDispositivoDto, ) {
     return this.prisma.cat_dispositivo.update({ 
       where: { idDispositivo: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date() } 
+      data: { ...dto,    } 
     });
   }
 
@@ -131,10 +146,10 @@ export class CatalogosService {
       data: { idDispositivoT: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarTipoDispositivo(id: string, dto: ActualizarTipoDispositivoDto, usuario: string) {
+  async actualizarTipoDispositivo(id: string, dto: ActualizarTipoDispositivoDto) {
     return this.prisma.cat_dispositivo_t.update({ 
       where: { idDispositivoT: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date().toISOString() } 
+      data: { ...dto,   } 
     });
   }
 
@@ -146,10 +161,10 @@ export class CatalogosService {
       data: { idEmpresa: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarEmpresa(id: string, dto: ActualizarEmpresaDto, usuario: string) {
+  async actualizarEmpresa(id: string, dto: ActualizarEmpresaDto) {
     return this.prisma.cat_empresa.update({ 
       where: { idEmpresa: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date() } 
+      data: { ...dto,    } 
     });
   }
 
@@ -161,10 +176,10 @@ export class CatalogosService {
       data: { idFalla: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarFalla(id: string, dto: ActualizarFallaDto, usuario: string) {
+  async actualizarFalla(id: string, dto: ActualizarFallaDto) {
     return this.prisma.cat_falla.update({ 
       where: { idFalla: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date() } 
+      data: { ...dto,    } 
     });
   }
 
@@ -176,10 +191,10 @@ export class CatalogosService {
       data: { idReporta: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date().toISOString() } 
     });
   }
-  async actualizarReporta(id: string, dto: ActualizarReportaDto, usuario: string) {
+  async actualizarReporta(id: string, dto: ActualizarReportaDto) {
     return this.prisma.cat_reporta.update({ 
       where: { idReporta: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date() } 
+      data: { ...dto,    } 
     });
   }
 
@@ -191,10 +206,10 @@ export class CatalogosService {
       data: { idRuta: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
     });
   }
-  async actualizarRuta(id: string, dto: ActualizarRutaDto, usuario: string) {
+  async actualizarRuta(id: string, dto: ActualizarRutaDto) {
     return this.prisma.cat_ruta.update({ 
       where: { idRuta: id }, 
-      data: { ...dto, modificadoPor: usuario, fechaModificacion: new Date() } 
+      data: { ...dto,    } 
     });
   }
 

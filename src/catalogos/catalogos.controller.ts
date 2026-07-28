@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards, UseInterceptors } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CatalogosService } from './catalogos.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
@@ -33,8 +33,25 @@ export class CatalogosController {
 
   @Patch('autobuses/:id')
   @Roles('admin', 'superadmin', 'mesacontrol')
-  actualizarAutobus(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarAutobus(id, dto, user.useremail); }
+  actualizarAutobus(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarAutobus(id,dto); }
 
+
+  // -- HORARIOS ---
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300)
+  @Get('horarios')
+  listarHorarios() { return this.catalogosService.listarHorarios(); }
+
+  @Get('horarios/:id')
+  obtenerHorario(@Param('id') id: string) { return this.catalogosService.obtenerHorario(id); }
+
+  @Post('horarios')
+  @Roles('admin', 'superadmin')
+  crearHorario(@Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.crearHorario(dto, user.useremail); }
+
+  @Patch('horarios/:id')
+  @Roles('admin', 'superadmin')
+  actualizarHorario(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarHorario(id,dto); }
 
   // --- CARROCERÍAS ---
   @UseInterceptors(CacheInterceptor)
@@ -51,7 +68,7 @@ export class CatalogosController {
 
   @Patch('carrocerias/:id')
   @Roles('admin', 'superadmin')
-  actualizarCarroceria(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarCarroceria(id, dto, user.useremail); }
+  actualizarCarroceria(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarCarroceria(id,dto); }
 
 
   // --- CELULARES ---
@@ -87,7 +104,7 @@ export class CatalogosController {
 
   @Patch('ciudades/:id')
   @Roles('admin', 'superadmin')
-  actualizarCiudad(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarCiudad(id, dto, user.useremail); }
+  actualizarCiudad(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarCiudad(id,dto); }
 
 
   // --- DEPARTAMENTOS ---
@@ -123,7 +140,7 @@ export class CatalogosController {
 
   @Patch('diagnosticos/:id')
   @Roles('admin', 'superadmin')
-  actualizarDiagnostico(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarDiagnostico(id, dto, user.useremail); }
+  actualizarDiagnostico(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarDiagnostico(id,dto); }
 
 
   // --- DISPOSITIVOS ---
@@ -141,7 +158,7 @@ export class CatalogosController {
 
   @Patch('dispositivos/:id')
   @Roles('admin', 'superadmin', 'almacen')
-  actualizarDispositivo(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarDispositivo(id, dto, user.useremail); }
+  actualizarDispositivo(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarDispositivo(id,dto); }
 
 
   // --- TIPOS DE DISPOSITIVOS ---
@@ -159,7 +176,7 @@ export class CatalogosController {
 
   @Patch('tipos-dispositivos/:id')
   @Roles('admin', 'superadmin')
-  actualizarTipoDispositivo(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarTipoDispositivo(id, dto, user.useremail); }
+  actualizarTipoDispositivo(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarTipoDispositivo(id,dto); }
 
 
   // --- EMPRESAS ---
@@ -177,7 +194,7 @@ export class CatalogosController {
 
   @Patch('empresas/:id')
   @Roles('admin', 'superadmin')
-  actualizarEmpresa(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarEmpresa(id, dto, user.useremail); }
+  actualizarEmpresa(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarEmpresa(id,dto); }
 
 
   // --- FALLAS ---
@@ -195,7 +212,7 @@ export class CatalogosController {
 
   @Patch('fallas/:id')
   @Roles('admin', 'superadmin', 'mesacontrol')
-  actualizarFalla(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarFalla(id, dto, user.useremail); }
+  actualizarFalla(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarFalla(id,dto); }
 
 
   // --- REPORTA ---
@@ -213,7 +230,7 @@ export class CatalogosController {
 
   @Patch('reporta/:id')
   @Roles('admin', 'superadmin')
-  actualizarReporta(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarReporta(id, dto, user.useremail); }
+  actualizarReporta(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarReporta(id,dto); }
 
 
   // --- RUTAS ---
@@ -231,7 +248,7 @@ export class CatalogosController {
 
   @Patch('rutas/:id')
   @Roles('admin', 'superadmin', 'mesacontrol')
-  actualizarRuta(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarRuta(id, dto, user.useremail); }
+  actualizarRuta(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) { return this.catalogosService.actualizarRuta(id,dto); }
 
 
   // --- SIMS DVR ---

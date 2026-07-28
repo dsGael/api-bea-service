@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsInt, IsDate } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 
 // ==========================================
@@ -202,3 +203,49 @@ export class CrearSueldoDto {
   @IsOptional() @IsString() Comentarios?: string;
 }
 export class ActualizarSueldoDto extends PartialType(CrearSueldoDto) {}
+
+
+// ==========================================
+// 15. HORARIOS
+// ==========================================
+
+export class CrearHorarioDto {
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const parts = value.split(':').map((p) => Number.parseInt(p, 10));
+      const h = Number.isNaN(parts[0]) ? 0 : parts[0];
+      const m = Number.isNaN(parts[1]) ? 0 : parts[1];
+      const s = Number.isNaN(parts[2]) ? 0 : parts[2];
+      const d = new Date();
+      d.setHours(h, m, s, 0);
+      return d;
+    }
+    return value;
+  })
+  @IsDate()
+  horaEntrada?: Date;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const parts = value.split(':').map((p) => Number.parseInt(p, 10));
+      const h = Number.isNaN(parts[0]) ? 0 : parts[0];
+      const m = Number.isNaN(parts[1]) ? 0 : parts[1];
+      const s = Number.isNaN(parts[2]) ? 0 : parts[2];
+      const d = new Date();
+      d.setHours(h, m, s, 0);
+      return d;
+    }
+    return value;
+  })
+  @IsDate()
+  horaSalida?: Date;
+
+  @IsOptional() @IsNumber() minutosTolerancia?: number;
+  @IsOptional() @IsString() diaDescanso?: string;
+  @IsOptional() @IsBoolean() activo?: boolean;
+  
+}
+  
+export class ActualizarHorarioDto extends PartialType(CrearHorarioDto) {}
