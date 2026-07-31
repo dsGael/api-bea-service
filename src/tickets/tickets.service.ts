@@ -384,7 +384,6 @@ export class TicketsService {
           Reparacion: dto.reparacion,
           comentarios: dto.comentarios,
           imagen1: dto.imagen1,
-          imagen2: dto.imagen2,
           fechaResolucion: ahora,
           creadoPor: usuario,
           fechaCreacion: ahora,

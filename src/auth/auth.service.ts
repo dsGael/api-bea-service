@@ -19,6 +19,7 @@ export class AuthService {
       },
       include: { cat_empleados: true },
     });
+    console.log('Found account:', cuenta); // Log the found account for debugging
 
     if (!cuenta) {
       throw new UnauthorizedException('Credenciales inválidas');

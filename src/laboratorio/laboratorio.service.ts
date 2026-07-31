@@ -43,6 +43,13 @@ export class LaboratorioService {
     });
   }
 
+  async actualizarEvidencia(id: string, evidenciasUrl: string[]) {
+    return this.prisma.lab_reparacion.update({
+      where: { id_reparacion: id },
+      data: { evidencia_1: { set: evidenciasUrl } },
+    });
+  }
+
 
   
 }

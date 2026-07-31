@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsIn, IsArray } from 'class-validator';
 
 export class CrearSolicitudDto {
   @IsOptional()
@@ -14,8 +14,9 @@ export class CrearSolicitudDto {
   cantidad?: number = 1;
 
   @IsOptional()
-  @IsString()
-  imagen?: string; // URL de MinIO, opcional — foto de la pieza dañada
+  @IsArray()
+  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })
+  imagen?: string[]; 
 }
 
 

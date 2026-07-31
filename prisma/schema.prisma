@@ -59,10 +59,8 @@ model bin_ticket {
   fechamesa                DateTime?             @db.Timestamp(6)
   tiempototal              String?               @db.VarChar(50)
   tiemporetardounidad      String?               @db.VarChar(50)
-  imagenfalla1             String?
-  imagenfalla2             String?
-  imagenfalla3             String?
-  video                    String?
+  imagenfalla1             String[]  @default([])
+  video                    String[]  @default([])
   fechacat                 DateTime?             @db.Date
   folionumerocliente       String?               @db.VarChar(50)
   confirmarnuevaincidencia String?               @db.VarChar(255)
@@ -107,10 +105,8 @@ model bin_ticket_detail {
   Reparacion        String?
   comentarios       String?
   areatrabajo       String?            @db.VarChar(50)
-  imagen1           String?
-  imagen2           String?
-  imagen3           String?
-  video             String?
+  imagen1           String[]  @default([])
+  video             String[]  @default([])
   fechaResolucion   DateTime?          @db.Timestamp(6)
   creadoPor         String?            @db.VarChar(50)
   fechaCreacion     DateTime?          @db.Timestamp(6)
@@ -268,8 +264,6 @@ model cat_diagnostico {
   iddispositivof        String?            @db.VarChar(50)
   fechainstalacion      String?            @db.VarChar(50)
   comentarios           String?            @db.VarChar(64)
-  imagen1               String?            @db.VarChar(50)
-  imagen2               String?            @db.VarChar(50)
   cat_dispositivo_t     cat_dispositivo_t? @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_diagnostico_dispositivo_t")
   cat_falla             cat_falla?         @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_diagnostico_falla")
 }
@@ -293,8 +287,6 @@ model cat_dispositivo {
   fechaModificacion DateTime?           @db.Timestamp(6)
   fechaInstalacion  DateTime?           @db.Timestamp(6)
   comentarios       String?
-  imagen1           String?             @db.VarChar(255)
-  imagen2           String?             @db.VarChar(255)
   bin_ticket        bin_ticket[]
   bin_ticket_detail bin_ticket_detail[]
   cat_dispositivo_t cat_dispositivo_t?  @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "cat_dispositivo_cat_dispositivo_t_fk")
@@ -473,17 +465,6 @@ model cat_tipo_reparacion {
   bin_ticket        bin_ticket[]
 }
 
-model cat_ubicacion {
-  idUbicacion       String  @id @db.VarChar(50)
-  codigo            String? @db.VarChar(50)
-  nombre            String? @db.VarChar(50)
-  tipo              String? @db.VarChar(50)
-  creadoPor         String? @db.VarChar(50)
-  fechaCreacion     String? @db.VarChar(50)
-  modificadoPor     String? @db.VarChar(50)
-  fechaModificacion String? @db.VarChar(50)
-}
-
 model chat_tecnicos {
   idChat      String    @id @db.VarChar(50)
   idticket    String?   @db.VarChar(50)
@@ -518,7 +499,6 @@ model checador {
   idPuesto          String?           @db.VarChar(50)
   gps               String?           @db.VarChar(50)
   idgeocerca        Int?
-  foto              String?           @db.VarChar(50)
   ubicacion         String?           @db.VarChar(50)
   Informativo       String?
   AlertaHorasExtras String?           @db.VarChar(50)
@@ -559,23 +539,7 @@ model envios {
   paqueteria       String?   @db.VarChar(255)
   packingList      String?   @db.VarChar(255)
   fechaMovimiento  DateTime? @db.Timestamp(6)
-  imagen1          String?
-  imagen2          String?
-  imagen3          String?
-}
-
-model filtro {
-  usuario      String  @id @db.VarChar(50)
-  fechaInicial String? @db.VarChar(50)
-  fechaFinal   String? @db.VarChar(50)
-  unidad       String? @db.VarChar(50)
-  dispositivo  String? @db.VarChar(50)
-  falla        String? @db.VarChar(50)
-  categoria    String? @db.VarChar(50)
-  linea        String? @db.VarChar(50)
-  oeprador     String? @db.VarChar(50)
-  monitorista  String? @db.VarChar(50)
-  descripcion  String? @db.VarChar(50)
+  imagen1          String[]  @default([])
 }
 
 model gastos {
@@ -599,86 +563,16 @@ model geocercas {
   @@index([ubicacion], map: "idx_geocercas_ubicacion", type: Gist)
 }
 
-model log_usuarios {
-  idLog  String    @id @db.VarChar(50)
-  nombre String?   @db.VarChar(50)
-  fecha  DateTime? @db.Date
-}
-
-model menu_almacen {
-  idMenu Int     @id
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(255)
-}
-
-model menu_catalogo {
-  idMenu Int     @id
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(255)
-}
-
-model menu_configuracion {
-  idMenu Int     @id
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(255)
-}
-
-model menu_dispositivo {
-  idMenu Int     @id(map: "menu_dispositivo_pk")
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(50)
-}
-
-model menu_general {
-  idMenu Int     @id(map: "menu_general_pk")
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(50)
-}
-
-model menu_nomina {
-  idMenuNomina Int     @id
-  nombre       String? @db.VarChar(50)
-  vista        String? @db.VarChar(50)
-  imagen       String? @db.VarChar(255)
-}
-
-model menu_tecnico {
-  idMenu Int     @id
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(50)
-}
-
-model menu_ticket {
-  idMenu Int     @id
-  nombre String? @db.VarChar(50)
-  vista  String? @db.VarChar(50)
-  imagen String? @db.VarChar(50)
-}
-
 model parametros_nomina {
   idParametros String    @id @db.VarChar(50)
   Qinicio      DateTime? @db.Date
   QFin         DateTime? @db.Date
 }
 
-model permiso_vistas {
-  idPermiso String   @id @db.VarChar(50)
-  idUsuario String?  @db.VarChar(50)
-  idVista   String?  @db.VarChar(50)
-  permitido Boolean?
-}
-
 model rel_autobuses_dispositivo {
   idMenu            Int     @id
   nombre            String  @db.VarChar(50)
   vista             String? @db.VarChar(50)
-  imagen            String? @db.VarChar(50)
   idAsignacion      String? @db.VarChar(50)
   idAutobus         String? @db.VarChar(50)
   idDispostivo      String? @db.VarChar(50)
@@ -718,15 +612,6 @@ model rel_movimiento {
   @@index([idDispositivo], map: "fki_id_dispositivo_rel_movimiento_cat_dispositivo_t")
 }
 
-model sesion_monitor {
-  idSesion        String    @id @db.VarChar(50)
-  usuario         String?   @db.VarChar(50)
-  inicio          DateTime? @db.Timestamp(6)
-  fin             DateTime? @db.Timestamp(6)
-  estado          String?   @db.VarChar(50)
-  ultimaActividad DateTime? @db.Timestamp(6)
-}
-
 model solicitud_refaccion {
   idSolicitud       String             @id @db.VarChar(50)
   idticket          String?            @db.VarChar(50)
@@ -735,7 +620,7 @@ model solicitud_refaccion {
   idTecnico         String?            @db.VarChar(50)
   estado            String?            @db.VarChar(20)
   fecha             DateTime?          @default(now()) @db.Timestamp(6)
-  imagen            String?
+  imagen            String[]  @default([])
   cat_dispositivo_t cat_dispositivo_t? @relation(fields: [idDispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_dispositivoT")
   bin_ticket        bin_ticket?        @relation(fields: [idticket], references: [idticket], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_idticket")
   cat_tecnicos      cat_usuarios_app?  @relation(fields: [idTecnico], references: [idUsuarioApp], onDelete: Restrict, onUpdate: NoAction, map: "fk_solicitud_refaccion_tecnico")
@@ -776,20 +661,6 @@ model test_conteo {
   Flagu1Bajo       Boolean?
 }
 
-model vistas {
-  idvista       String  @id @db.VarChar(50)
-  vista         String? @db.VarChar(50)
-  superAdmin    String? @db.VarChar(50)
-  admin         String? @db.VarChar(50)
-  tecnicojr     String? @db.VarChar(50)
-  tecnicosinior String? @db.VarChar(50)
-  supervisor    String? @db.VarChar(50)
-  almacen       String? @db.VarChar(50)
-  capturista    String? @db.VarChar(50)
-  mesacontrol   String? @db.VarChar(50)
-  consultas     String? @db.VarChar(50)
-}
-
 model lab_reparacion {
   id_reparacion     String            @id @default(dbgenerated("nextval('lab_reparacion_id_reparacion_seq'::regclass)")) @db.VarChar(50)
   id_dispositivo_t  String            @db.VarChar(50)
@@ -799,11 +670,10 @@ model lab_reparacion {
   notas_diagnostico String?
   fecha_ingreso     DateTime?         @default(now()) @db.Timestamp(6)
   fecha_cierre      DateTime?         @db.Timestamp(6)
-  evidencia_1       String?
-  evidencia_2       String?
-  evidencia_3       String?
+  evidencia_1       String[]  @default([])
   numero_serie      String?           @db.VarChar(255)
   id_dispositivo    String?           @db.VarChar(255)
+  video             String[]  @default([])
   cat_dispositivo   cat_dispositivo?  @relation(fields: [id_dispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_dispositivo")
   cat_dispositivo_t cat_dispositivo_t @relation(fields: [id_dispositivo_t], references: [idDispositivoT], onDelete: NoAction, map: "fk_reparacion_dispositivo_t")
   cat_tecnicos      cat_usuarios_app? @relation(fields: [id_tecnico_lab], references: [idUsuarioApp], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_tecnico")

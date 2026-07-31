@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CerrarTicketDto {
@@ -18,14 +18,17 @@ export class CerrarTicketDto {
   comentarios?: string;
 
   @ApiPropertyOptional({ description: 'URL de la primera evidencia fotográfica' })
-  @IsString() // Puedes cambiarlo a @IsUrl() si guardas enlaces completos de S3/Cloud Storage
+  @IsArray() 
+  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })// Puedes cambiarlo a @IsUrl() si guardas enlaces completos de S3/Cloud Storage
   @IsOptional()
-  imagen1?: string;
+  imagen1?: string[];
 
   @ApiPropertyOptional({ description: 'URL de la segunda evidencia fotográfica' })
-  @IsString()
+  @IsArray()
+  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })// Puedes cambiarlo a @IsUrl() si guardas enlaces completos de S3/Cloud Storage
   @IsOptional()
-  imagen2?: string;
+  video?: string[];
+
 }
 
 

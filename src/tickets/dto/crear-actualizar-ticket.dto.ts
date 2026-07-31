@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsNumber, IsArray } from 'class-validator';
 
 export class CrearTicketDto {
   @IsOptional()
@@ -153,20 +153,16 @@ export class CrearTicketDto {
   tiemporetardounidad?: string;
 
   @IsOptional()
-  @IsString()
+  @IsArray()
+  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })  
   imagenfalla1?: string;
 
-  @IsOptional()
-  @IsString()
-  imagenfalla2?: string;
+
 
   @IsOptional()
-  @IsString()
-  imagenfalla3?: string;
-
-  @IsOptional()
-  @IsString()
-  video?: string;
+  @IsArray()
+  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })
+  video?: string[];
 
   @IsOptional()
   @IsDateString()

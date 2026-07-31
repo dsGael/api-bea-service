@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsIn } from 'class-validator';
 
 export class CrearReparacionDto {
   @IsString()
@@ -20,14 +20,12 @@ export class CrearReparacionDto {
 export class ActualizarReparacionDto {
   @IsOptional()
   @IsString()
+  @IsIn(['Pendiente', 'Reparado', 'SINIESTRADO'])
   estatus?: string; // 'EN PROCESO', 'REPARADO', 'SCRAP'
 
   @IsOptional()
   @IsString()
   notas_diagnostico?: string;
 
-  // Las evidencias después las conectaremos con Multer/S3
-  @IsOptional()
-  @IsString()
-  evidencia_1?: string;
+
 }
