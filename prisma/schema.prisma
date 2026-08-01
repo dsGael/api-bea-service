@@ -59,8 +59,8 @@ model bin_ticket {
   fechamesa                DateTime?             @db.Timestamp(6)
   tiempototal              String?               @db.VarChar(50)
   tiemporetardounidad      String?               @db.VarChar(50)
-  imagenfalla1             String[]  @default([])
-  video                    String[]  @default([])
+  imagenfalla1             String[]              @default([])
+  video                    String[]              @default([])
   fechacat                 DateTime?             @db.Date
   folionumerocliente       String?               @db.VarChar(50)
   confirmarnuevaincidencia String?               @db.VarChar(255)
@@ -105,8 +105,8 @@ model bin_ticket_detail {
   Reparacion        String?
   comentarios       String?
   areatrabajo       String?            @db.VarChar(50)
-  imagen1           String[]  @default([])
-  video             String[]  @default([])
+  imagen1           String[]           @default([])
+  video             String[]           @default([])
   fechaResolucion   DateTime?          @db.Timestamp(6)
   creadoPor         String?            @db.VarChar(50)
   fechaCreacion     DateTime?          @db.Timestamp(6)
@@ -620,7 +620,7 @@ model solicitud_refaccion {
   idTecnico         String?            @db.VarChar(50)
   estado            String?            @db.VarChar(20)
   fecha             DateTime?          @default(now()) @db.Timestamp(6)
-  imagen            String[]  @default([])
+  imagen            String[]           @default([])
   cat_dispositivo_t cat_dispositivo_t? @relation(fields: [idDispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_dispositivoT")
   bin_ticket        bin_ticket?        @relation(fields: [idticket], references: [idticket], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_refaccion_idticket")
   cat_tecnicos      cat_usuarios_app?  @relation(fields: [idTecnico], references: [idUsuarioApp], onDelete: Restrict, onUpdate: NoAction, map: "fk_solicitud_refaccion_tecnico")
@@ -670,10 +670,10 @@ model lab_reparacion {
   notas_diagnostico String?
   fecha_ingreso     DateTime?         @default(now()) @db.Timestamp(6)
   fecha_cierre      DateTime?         @db.Timestamp(6)
-  evidencia_1       String[]  @default([])
+  evidencia_1       String[]          @default([])
   numero_serie      String?           @db.VarChar(255)
   id_dispositivo    String?           @db.VarChar(255)
-  video             String[]  @default([])
+  video             String[]          @default([])
   cat_dispositivo   cat_dispositivo?  @relation(fields: [id_dispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_dispositivo")
   cat_dispositivo_t cat_dispositivo_t @relation(fields: [id_dispositivo_t], references: [idDispositivoT], onDelete: NoAction, map: "fk_reparacion_dispositivo_t")
   cat_tecnicos      cat_usuarios_app? @relation(fields: [id_tecnico_lab], references: [idUsuarioApp], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_tecnico")

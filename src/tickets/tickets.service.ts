@@ -61,6 +61,43 @@ export class TicketsService {
     };
   }
 
+
+  async listarMantenimiento(query: ListarTicketsQueryDto) {
+    const { page = 1, limit = 20, ...filtros } = query;
+    const where = {
+      ...(filtros.idestado && { idestado: filtros.idestado }),
+      ...(filtros.idautobus && { idautobus: filtros.idautobus }),
+      ...(filtros.idruta && { idruta: filtros.idruta }),
+      ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }),
+      ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
+      tiporeparacion: TIPO_MANTENIMIENTO_ID, // Filtra solo tickets de mantenimiento preventivo
+    };
+
+    const [tickets, total] = await this.prisma.$transaction([
+      this.prisma.bin_ticket.findMany({
+        where,
+        include: {
+          cat_falla: true,
+          cat_autobus: true,
+          cat_prioridad: true,
+          estado: true,
+          cat_tecnicos: true,
+          cat_dispositivo_t: true,
+        },
+        orderBy: { fechacreacion: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.bin_ticket.count({ where }),
+    ]);
+
+    return {
+      data: tickets,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+    
+  }
+
   // ── Resolvers: cada uno reemplaza una fórmula que antes vivía en AppSheet ──
 
   private async resolverIdEmpresa(

@@ -30,30 +30,37 @@ export class TicketsController {
   // intente interpretar "todos" o "mantenimiento" como un idticket.
 
   @Get()
-  @Roles('mesacontrol',  'admin', 'superAdmin', 'almacen', 'consultas')
+  @Roles('mesacontrol',  'admin', 'superadmin', 'almacen', 'consultas')
   @ApiOperation({ summary: 'Lista todos los folios con filtros y paginación' })
   listarTodos(@Query() query: ListarTicketsQueryDto) {
     return this.ticketsService.listarTodos(query);
   }
 
   @Get('tecnico/:idtecnico')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superAdmin')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
   @ApiOperation({ summary: 'Folios abiertos/en validación/pendientes asignados a un técnico' })
   listarPorTecnico(@Param('idtecnico') idtecnico: string) {
     return this.ticketsService.listarPorTecnico(idtecnico);
   }
 
+  @Get('mantenimiento')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @ApiOperation({ summary: 'Folios de mantenimiento preventivo' })
+  listarMantenimiento(@Query() query: ListarTicketsQueryDto) {
+    return this.ticketsService.listarMantenimiento(query);
+  }
+
   // ── Creación ──
 
   @Post()
-  @Roles('superAdmin', 'admin', 'mesacontrol', 'capturista')
+  @Roles('superadmin', 'admin', 'mesacontrol', 'capturista')
   @ApiOperation({ summary: 'Crea un folio normal (reportado por falla)' })
   crear(@Body() dto: CrearTicketDto, @CurrentUser() user: any) {
     return this.ticketsService.crearTicket(dto, user.idUsuarioApp);
   }
 
   @Post('mantenimiento')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superAdmin')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
   @ApiOperation({ summary: 'Crea un folio de mantenimiento preventivo, auto-asignado al técnico' })
   crearMantenimiento(
     @Body() dto: CrearFolioMantenimientoDto,
@@ -69,9 +76,8 @@ export class TicketsController {
     'tecnicojr',
     'tecnicosinior',
     'mesacontrol',
-    
     'admin',
-    'superAdmin',
+    'superadmin',
     'almacen',
     'consultas',
   )
@@ -82,7 +88,7 @@ export class TicketsController {
   // ── Transiciones de estado ──
 
   @Patch(':id/asignar')
-  @Roles('mesacontrol',  'admin', 'superAdmin')
+  @Roles('mesacontrol',  'admin', 'superadmin')
   @ApiOperation({ summary: 'Asigna un técnico al folio (no cambia el estado)' })
   asignar(
     @Param('id') id: string,
@@ -104,7 +110,7 @@ export class TicketsController {
   }
 
   @Patch(':id/validar')
-  @Roles('mesacontrol',  'admin', 'superAdmin')
+  @Roles('mesacontrol',  'admin', 'superadmin')
   @ApiOperation({ summary: 'Mesa de control aprueba (Finalizado) o rechaza (regresa a Abierto)' })
   validar(
     @Param('id') id: string,
@@ -129,7 +135,7 @@ export class TicketsController {
   }
 
   @Patch(':id/cancelar')
-  @Roles('admin', 'superAdmin')
+  @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Cancela el folio (acción administrativa)' })
   cancelar(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.cancelarTicket(id, user.idUsuarioApp);
