@@ -104,7 +104,6 @@ async listarMes(mes: number, anio: number) {
   // El día '0' automáticamente nos da el último día del mes configurado
   const finMes = new Date(Date.UTC(anio, mes, 0, 23, 59, 59, 999));
 
-  console.log(`Buscando fecha desde: ${inicioMes.toISOString()} hasta ${finMes.toISOString()}`);
 
   return this.prisma.checador.findMany({
     where: { 

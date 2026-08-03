@@ -50,6 +50,27 @@ export class TicketsController {
     return this.ticketsService.listarMantenimiento(query);
   }
 
+  @Get('mantenimiento/tecnico/:idtecnico')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @ApiOperation({ summary: 'Folios de mantenimiento preventivo asignados a un técnico' })
+  listarMantenimientoPorTecnico(@Param('idtecnico') idtecnico: string) {
+    return this.ticketsService.listarMantenimientoPorTecnico(idtecnico);
+  }
+
+  @Get('mantenimiento/abierto')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @ApiOperation({ summary: 'Folios de mantenimiento preventivo abiertos' })
+  listarMantenimientoAbiertos(@Query() query: ListarTicketsQueryDto) {
+    return this.ticketsService.listarMantenimientoAbiertos(query);
+  }
+
+  @Get('mantenimiento/abierto/tecnico/:idtecnico')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @ApiOperation({ summary: 'Folios de mantenimiento preventivo abiertos asignados a un técnico' })
+  listarMantenimientoAbiertosPorTecnico(@Param('idtecnico') idtecnico: string) {
+    return this.ticketsService.listarMantenimientoAbiertosPorTecnico(idtecnico);
+  }
+
   // ── Creación ──
 
   @Post()

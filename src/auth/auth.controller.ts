@@ -10,7 +10,6 @@ export class AuthController {
 
   @Post('login')
   login(@Body() dto: LoginDto) {
-    console.log('Login attempt with DTO:', dto); // Log the incoming DTO for debugging
     return this.authService.login(dto);
   }
 }
