@@ -107,6 +107,39 @@ private readonly TICKET_INCLUDES = {
   cat_dispositivo_t: true,
 };
 
+async listarCorrectivosAbiertos(query: ListarTicketsQueryDto) {
+  const { page = 1, limit = 20, ...filtros } = query;
+  const where = {
+    ...(filtros.idautobus && { idautobus: filtros.idautobus }),
+    ...(filtros.idruta && { idruta: filtros.idruta }),
+    ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }), 
+    ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
+    tiporeparacion: { not: TIPO_MANTENIMIENTO_ID },
+    idestado: { in: [ESTADO_ABIERTO_ID] },
+  };
+
+  const [tickets, total] = await this.prisma.$transaction([
+    this.prisma.bin_ticket.findMany({
+      where,
+      include: this.TICKET_INCLUDES,
+      orderBy: { fechacreacion: 'desc' },
+      skip: (Number(page) - 1) * Number(limit),
+      take: Number(limit),
+    }),
+    this.prisma.bin_ticket.count({ where }),
+  ]);
+
+  return {
+    data: tickets,
+    meta: { 
+      total, 
+      page: Number(page), 
+      limit: Number(limit), 
+      totalPages: Math.ceil(total / Number(limit)) 
+    },
+  };
+}
+
 async listarMantenimientoAbiertos(query: ListarTicketsQueryDto) {
   const { page = 1, limit = 20, ...filtros } = query;
   
@@ -116,7 +149,7 @@ async listarMantenimientoAbiertos(query: ListarTicketsQueryDto) {
     ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }), 
     ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
     tiporeparacion: TIPO_MANTENIMIENTO_ID,
-    idestado: { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] },
+    idestado: { in: [ESTADO_ABIERTO_ID] },
   };
 
   const [tickets, total] = await this.prisma.$transaction([

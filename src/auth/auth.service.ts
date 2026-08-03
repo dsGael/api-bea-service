@@ -46,9 +46,28 @@ export class AuthService {
         nombre: cuenta.cat_empleados?.nombre,
         perfil: cuenta.perfil,
         useremail: cuenta.useremail,
-        especialidad: cuenta.especialidad,
         idEmpresa: cuenta.cat_empleados?.idEmpresa,
       },
     };
   }
+
+  async obtenerPerfil(idUsuarioApp: string) {
+  const cuenta = await this.prisma.cat_usuarios_app.findUnique({
+    where: { idUsuarioApp },
+    include: { cat_empleados: true },
+  });
+
+  if (!cuenta) {
+    throw new UnauthorizedException('Cuenta no encontrada');
+  }
+
+  return {
+    idUsuarioApp: cuenta.idUsuarioApp,
+    idEmpleado: cuenta.idEmpleado,
+    nombre: cuenta.cat_empleados?.nombre,
+    perfil: cuenta.perfil,
+    useremail: cuenta.useremail,
+    idEmpresa: cuenta.cat_empleados?.idEmpresa,
+  };
+}
 }

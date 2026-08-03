@@ -71,6 +71,13 @@ export class TicketsController {
     return this.ticketsService.listarMantenimientoAbiertosPorTecnico(idtecnico);
   }
 
+  @Get('correctivos/abierto')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @ApiOperation({ summary: 'Folios correctivos abiertos' })
+  listarCorrectivosAbiertos(@Query() query: ListarTicketsQueryDto) {
+    return this.ticketsService.listarCorrectivosAbiertos(query);
+  }
+
   // ── Creación ──
 
   @Post()
