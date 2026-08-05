@@ -15,31 +15,43 @@ export class ChecadorService {
   }
   
   async checar(dto: ChecarDto) {
-    if (dto.gps) {
-      await this.validarGeocerca(dto.idUsuario, dto.gps.lat, dto.gps.lng);
-    }
-
-    const idChecador = randomUUID();
-    const idgeocerca = dto.gps
-      ? await this.obtenerIdGeocerca(dto.idUsuario)
-      : null;
-
-    await this.prisma.checador.create({
-      data: {
-        idChecador,
-        idUsuario: dto.idUsuario, // ahora es literal cat_usuarios_app.idUsuarioApp
-        nombre: dto.nombre,
-        hora: new Date(`1970-01-01T${dto.hora}`),
-        fecha: new Date(dto.fecha_hora),
-        fecha_hora: new Date(dto.fecha_hora),
-        gps: dto.gps ? `${dto.gps.lat},${dto.gps.lng}` : null,
-        idgeocerca,
-        deviceUUID: dto.deviceUUID,
-      },
+  if (dto.idChecador) {
+    const existente = await this.prisma.checador.findUnique({
+      where: { idChecador: dto.idChecador },
     });
-
-    return this.prisma.checador.findUnique({ where: { idChecador } });
+    if (existente) return existente;
   }
+
+  if (dto.gps) {
+    await this.validarGeocerca(dto.idUsuario, dto.gps.lat, dto.gps.lng);
+  }
+
+  const idChecador = dto.idChecador ?? randomUUID();
+  const idgeocerca = dto.gps ? await this.obtenerIdGeocerca(dto.idUsuario) : null;
+
+  // fecha_hora: el instante real, en UTC — sin ambigüedad, sirve para ordenar/comparar
+  const fechaHoraUtc = new Date(dto.fecha_hora);
+
+  // hora y fecha: la hora de PARED en Sonora — Sonora es fija UTC-7, sin horario de verano
+  const OFFSET_SONORA_MS = 7 * 60 * 60 * 1000;
+  const fechaHoraSonora = new Date(fechaHoraUtc.getTime() - OFFSET_SONORA_MS);
+
+  await this.prisma.checador.create({
+    data: {
+      idChecador,
+      idUsuario: dto.idUsuario,
+      nombre: dto.nombre,
+      hora: fechaHoraSonora,       // hora de pared, ej. 13:14:16
+      fecha: fechaHoraSonora,      // fecha de pared — importante cerca de medianoche
+      fecha_hora: fechaHoraSonora,    // instante real en UTC, ej. 20:14:16
+      gps: dto.gps ? `${dto.gps.lat},${dto.gps.lng}` : null,
+      idgeocerca,
+      deviceUUID: dto.deviceUUID,
+    },
+  });
+
+  return this.prisma.checador.findUnique({ where: { idChecador } });
+}
 
  
   private async obtenerIdGeocerca(idUsuarioApp: string): Promise<number | null> {

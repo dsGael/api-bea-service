@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, ValidateNested, IsUUID } from 'class-validator';
 
 export class CheckadaGpsDto {
   @IsNumber()
@@ -10,6 +10,11 @@ export class CheckadaGpsDto {
 }
 
 export class ChecarDto {
+
+  @IsOptional()
+  @IsUUID()
+  idChecador?: string;
+
   @IsString()
   idUsuario!: string;
 

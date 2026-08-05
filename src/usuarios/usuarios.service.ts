@@ -138,29 +138,47 @@ export class UsuariosService {
 
   async desactivar(idEmpleado: string, modificadoPor: string) {
     await this.obtenerPorId(idEmpleado);
+    const ahora = new Date();
 
-    return this.prisma.cat_empleados.update({
-      where: { idEmpleado },
-      data: {
-        activo: false,  
-        fechaBaja: new Date(),
-        quienModifica: modificadoPor,
-        fechaModificacion: new Date(),
-      },
-    });
+    const [empleado] = await this.prisma.$transaction([
+      this.prisma.cat_empleados.update({
+        where: { idEmpleado },
+        data: {
+          activo: false,
+          fechaBaja: ahora,
+          quienModifica: modificadoPor,
+          fechaModificacion: ahora,
+        },
+      }),
+      this.prisma.cat_usuarios_app.updateMany({
+        where: { idEmpleado },
+        data: { activo: false, fechaModificacion: ahora.toISOString() },
+      }),
+    ]);
+
+    return empleado;
   }
 
   async reactivar(idEmpleado: string, modificadoPor: string) {
     await this.obtenerPorId(idEmpleado);
+    const ahora = new Date();
 
-    return this.prisma.cat_empleados.update({
-      where: { idEmpleado },
-      data: {
-        activo: true,
-        fechaBaja: null,
-        quienModifica: modificadoPor,
-        fechaModificacion: new Date(),
-      },
-    });
+    const [empleado] = await this.prisma.$transaction([
+      this.prisma.cat_empleados.update({
+        where: { idEmpleado },
+        data: {
+          activo: true,
+          fechaBaja: null,
+          quienModifica: modificadoPor,
+          fechaModificacion: ahora,
+        },
+      }),
+      this.prisma.cat_usuarios_app.updateMany({
+        where: { idEmpleado },
+        data: { activo: true, fechaModificacion: ahora.toISOString() },
+      }),
+    ]);
+
+    return empleado;
   }
 }

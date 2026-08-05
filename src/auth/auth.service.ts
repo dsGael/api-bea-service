@@ -17,20 +17,26 @@ export class AuthService {
       where: {
         OR: [{ idEmpleado: dto.usuario }, { useremail: dto.usuario }],
       },
-      include: { cat_empleados: true },
+      include: {
+        cat_empleados: true,
+        geocercas: {
+          select: { idGeocerca: true, coordenada: true, radio: true },
+        },
+      },
     });
 
     if (!cuenta) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Usuario no encontrado');
     }
     if (cuenta.contrase_a !== dto.password) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Contraseña incorrecta');
     }
-    // cat_empleados.activo es la fuente de verdad para decidir acceso —
-    // cat_usuarios_app.activo queda como dato secundario, no se valida aquí.
-    if (!(cuenta.cat_empleados?.activo)) {
+    // cat_usuarios_app.activo es la fuente de verdad para decidir acceso.
+    // Validamos directamente el campo `activo` de la cuenta de usuario.
+    if (!cuenta.activo) {
       throw new UnauthorizedException('Usuario inactivo');
     }
+    console.log('Cuenta encontrada:', cuenta);
 
     const payload = {
       sub: cuenta.idUsuarioApp,
@@ -47,27 +53,49 @@ export class AuthService {
         perfil: cuenta.perfil,
         useremail: cuenta.useremail,
         idEmpresa: cuenta.cat_empleados?.idEmpresa,
+        idGeocerca: cuenta.idGeocerca ?? null,
+        geocerca: cuenta.geocercas
+          ? {
+              idGeocerca: cuenta.geocercas.idGeocerca,
+              coordenada: cuenta.geocercas.coordenada,
+              radio: cuenta.geocercas.radio,
+            }
+          : null,
+        
       },
     };
   }
 
-  async obtenerPerfil(idUsuarioApp: string) {
-  const cuenta = await this.prisma.cat_usuarios_app.findUnique({
-    where: { idUsuarioApp },
-    include: { cat_empleados: true },
-  });
+    async obtenerPerfil(idUsuarioApp: string) {
+    const cuenta = await this.prisma.cat_usuarios_app.findUnique({
+      where: { idUsuarioApp },
+      include: {
+        cat_empleados: true,
+        geocercas: {
+          select: { idGeocerca: true, coordenada: true, radio: true },
+        },
+      },
+    });
 
-  if (!cuenta) {
-    throw new UnauthorizedException('Cuenta no encontrada');
+    if (!cuenta) {
+      throw new UnauthorizedException('Cuenta no encontrada');
+    }
+
+    return {
+      idUsuarioApp: cuenta.idUsuarioApp,
+      idEmpleado: cuenta.idEmpleado,
+      nombre: cuenta.cat_empleados?.nombre,
+      perfil: cuenta.perfil,
+      useremail: cuenta.useremail,
+      idEmpresa: cuenta.cat_empleados?.idEmpresa,
+      idGeocerca: cuenta.idGeocerca ?? null,
+      geocerca: cuenta.geocercas
+        ? {
+            idGeocerca: cuenta.geocercas.idGeocerca,
+            coordenada: cuenta.geocercas.coordenada,
+            radio: cuenta.geocercas.radio,
+          }
+        : null,
+    };
   }
-
-  return {
-    idUsuarioApp: cuenta.idUsuarioApp,
-    idEmpleado: cuenta.idEmpleado,
-    nombre: cuenta.cat_empleados?.nombre,
-    perfil: cuenta.perfil,
-    useremail: cuenta.useremail,
-    idEmpresa: cuenta.cat_empleados?.idEmpresa,
-  };
-}
 }
