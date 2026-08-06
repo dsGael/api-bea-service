@@ -2,13 +2,13 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MovimientosService } from '../almacen/movimientos.service';
 import { CrearSolicitudDto,ActualizarEstadoSolicitudDto } from './dto/crear-actualizar-solicitud.dto';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class RefaccionesService {
   constructor(
-    private prisma: PrismaService,
-    private movimientos: MovimientosService,
+    private readonly prisma: PrismaService,
+    private readonly movimientos: MovimientosService,
   ) {}
 
   async obtenerPorId(idSolicitud: string) {

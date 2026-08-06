@@ -40,14 +40,7 @@ export class TicketsService {
     const [tickets, total] = await this.prisma.$transaction([
       this.prisma.bin_ticket.findMany({
         where,
-        include: {
-          cat_falla: true,
-          cat_autobus: true,
-          cat_prioridad: true,
-          estado: true,
-          cat_tecnicos: true,
-          cat_dispositivo_t: true,
-        },
+        include: this.TICKET_INCLUDES,
         orderBy: { fechacreacion: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -76,14 +69,7 @@ export class TicketsService {
     const [tickets, total] = await this.prisma.$transaction([
       this.prisma.bin_ticket.findMany({
         where,
-        include: {
-          cat_falla: true,
-          cat_autobus: true,
-          cat_prioridad: true,
-          estado: true,
-          cat_tecnicos: true,
-          cat_dispositivo_t: true,
-        },
+        include: this.TICKET_INCLUDES,
         orderBy: { fechacreacion: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -105,6 +91,9 @@ private readonly TICKET_INCLUDES = {
   estado: true,
   cat_tecnicos: true,
   cat_dispositivo_t: true,
+  cat_dispositivo:true,
+  cat_ruta:true,
+  cat_empresa:true
 };
 
 async listarCorrectivosAbiertos(query: ListarTicketsQueryDto) {
@@ -221,9 +210,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     throw new BadRequestException('El idempresa es obligatorio.');
   }
 
-  /**
-   * Igual que antes: busca la ruta asignada hoy a la unidad, vía asignacion_diaria.
-   */
+
   private async resolverIdRuta(idruta?: string, numeroEconomico?: string): Promise<string | undefined> {
     if (idruta) return idruta;
     if (!numeroEconomico) return undefined;
@@ -243,11 +230,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     return ruta?.idRuta;
   }
 
-  /**
-   * Nuevo: resuelve numeroEconomico directo de cat_autobus.
-   * Antes esto se repetía dentro de resolverIdRuta sin guardarse en el ticket;
-   * ahora lo separamos porque bin_ticket.numeroeconomico también necesita llenarse.
-   */
+
   private async resolverNumeroEconomico(idautobus?: string): Promise<string | undefined> {
     if (!idautobus) return undefined;
     const autobus = await this.prisma.cat_autobus.findUnique({
@@ -257,14 +240,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     return autobus?.numeroEconomico ?? undefined;
   }
 
-  /**
-   * Nuevo: replica la fórmula de AppSheet
-   * any(SELECT(asignacionDiaria[OPERADOR], AND([UNIDAD]=numeroEconomico, [FECHA]=TODAY())))
-   *
-   * OPERADOR en tu tabla es texto libre, sin llave foránea real a `conductores` todavía —
-   * por eso idoperador y nombreoperador terminan siendo el mismo valor. Si me confirmas
-   * la columna que conecta con `conductores`, esto se puede separar correctamente.
-   */
+
   private async resolverOperador(
     numeroEconomico?: string,
   ): Promise<{ idoperador?: string; nombreoperador?: string }> {
@@ -283,12 +259,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     };
   }
 
-  /**
-   * Nuevo: reemplaza el subquery manual de AppSheet
-   * any(select(catDispositivo[idDispositivoT], [idDispositivo]=[_THISROW].[idDispositivo]))
-   * Ahora que tu schema tiene la relación real cat_dispositivo -> cat_dispositivo_t,
-   * esto es una consulta normal y tipada, no un SELECT crudo.
-   */
+  
   private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
     if (!iddispositivo) return undefined;
     const dispositivo = await this.prisma.cat_dispositivo.findUnique({
@@ -306,17 +277,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     };
   }
 
-  /**
-   * Genera un folio real y único usando una secuencia de Postgres — reemplaza el
-   * `folio: ''` que rompía en el segundo insert por violar el unique constraint.
-   * Requiere correr una vez en tu base:
-   *   CREATE SEQUENCE IF NOT EXISTS bin_ticket_num_folio_seq;
-   */
-  /**
-   * Inserción compartida entre folio normal y folio de mantenimiento.
-   * Aquí se resuelven TODOS los campos derivados server-side — el cliente
-   * (app/web) ya no necesita mandarlos ni duplicar esta lógica de negocio.
-   */
+
   private async crearTicketBase(
     campos: {
       idautobus?: string;
@@ -345,9 +306,6 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
       return await this.prisma.bin_ticket.create({
         data: {
           idticket: randomUUID(),
-          // folio y num_folio quedan vacíos a propósito: el trigger
-          // fn_generar_folio_ticket() de tu base los resuelve en el INSERT,
-          // con la lógica real de prefijos por empresa/tipo de reparación.
           folio: '',
           fecha: soloFecha,
           fechahora: ahora,
@@ -413,7 +371,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
         idcategoria: dto.idcategoria,
         comentarios: dto.comentarios,
         idempresa: idEmpresaFinal,
-        idtecnico: idUsuarioApp, // bin_ticket.idtecnico -> cat_usuarios_app.idUsuarioApp
+        idtecnico: idUsuarioApp, 
         tiporeparacion: TIPO_MANTENIMIENTO_ID,
       },
       usuario,
@@ -497,17 +455,19 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
         },
       });
 
+      const idDetalle = dto.idDetalle || randomUUID();
+
       await tx.bin_ticket_detail.create({
         data: {
-          idDetalle: randomUUID(),
+          idDetalle: idDetalle,
           idTicket: idticket,
           fechaHora: ahora,
           folio: ticket.folio,
           idAutobus: ticket.idautobus,
-          numeroeconomico: ticket.numeroeconomico, // reutilizado, no se vuelve a resolver
+          numeroeconomico: ticket.numeroeconomico,
           idRuta: ticket.idruta,
           idDispositivo: ticket.iddispositivo,
-          idDispositivoT: ticket.iddispositivot, // reutilizado del ticket ya resuelto
+          idDispositivoT: ticket.iddispositivot, 
           idFalla: ticket.idfalla,
           idCategoria: ticket.idcategoria,
           idPrioridad: ticket.idprioridad,

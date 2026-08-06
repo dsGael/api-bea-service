@@ -2,6 +2,12 @@ import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateIf } from
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CerrarTicketDto {
+
+  @ApiProperty({ description: 'Identificador único del ticket a cerrar' })
+  @IsString()
+  @IsNotEmpty({ message: 'El id del ticket es obligatorio para cerrar el ticket.' })
+  idDetalle!: string;
+
   @ApiProperty({ description: 'Diagnóstico encontrado en el equipo' })
   @IsString()
   @IsNotEmpty({ message: 'El diagnóstico es obligatorio para cerrar el ticket.' })

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, IsNumber, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
 
 export class CrearTicketDto {
   @IsOptional()

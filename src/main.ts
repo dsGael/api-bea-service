@@ -4,6 +4,11 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this); // Lo convierte a un número normal que JSON sí entiende
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -24,6 +29,6 @@ async function bootstrap() {
 
   
 
-  await app.listen(3000, '0.0.0.0');
+  await app.listen(3000);
 }
 bootstrap();
