@@ -7,14 +7,14 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { DriveService } from 'src/storage/drive/drive.service';
+import { MinioService } from 'src/storage/minio.service';
 
 @ApiTags('laboratorio')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('laboratorio') // Fíjate en la ruta
 export class LaboratorioController {
-  constructor(private readonly laboratorioService: LaboratorioService , private  readonly driveService: DriveService) {}
+  constructor(private readonly laboratorioService: LaboratorioService , private  readonly minioService: MinioService) {}
 
     @Post('reparaciones')
     @Roles('almacen', 'mesacontrol', 'admin','superadmin')
@@ -40,19 +40,27 @@ export class LaboratorioController {
         return this.laboratorioService.actualizar(id, dto);
     }
 
-        // En tu laboratorio.controller.ts
-    @Patch('reparaciones/evidencias/:id')
-    @UseInterceptors(FilesInterceptor('fotos', 5))
-    async subirEvidencias(
+  @Patch('reparaciones/evidencias/:id/:dispositivoT')
+  @UseInterceptors(FilesInterceptor('evidencias'))
+  async subirEvidencias(
     @Param('id') id: string,
+    @Param('dispositivoT') dispositivoT: string,
     @UploadedFiles() files: Array<Express.Multer.File>,
-    ) {
-    // Le decimos al servicio: "Guárdalas en una subcarpeta llamada Laboratorio"
-    // Incluso podrías usar el ID de la reparación: `Laboratorio-${id}`
-    const urls = await this.driveService.subirMultiplesArchivos(files, 'ImagenesReparacionesLAB');
+  ) {
+    //  Mapeamos el arreglo de archivos para crear múltiples promesas de subida
+    const promesasSubida = files.map(file => {
+      const key = `ImagenesReparacionesLAB/${dispositivoT}/${id}/${Date.now()}-${file.originalname}`;
+      return this.minioService.uploadFile(
+        'app-media', 
+        key, 
+        file.buffer, 
+        file.mimetype
+      );
+    });
 
+    const urls = await Promise.all(promesasSubida);
     return this.laboratorioService.actualizarEvidencia(id, urls);
-    }
+  }
 
 
 }

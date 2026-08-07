@@ -553,4 +553,12 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
       data: { idestado: ESTADO_CANCELADO_ID, modificadopor: usuario, fechamodificacion: new Date() },
     });
   }
+
+    async actualizarEvidencia(id: string, evidenciasUrl: string[]) {
+    return this.prisma.bin_ticket.update({
+      where: { idticket: id },
+      data: { imagenfalla1: { push: evidenciasUrl } },
+    });
+  }
+
 }

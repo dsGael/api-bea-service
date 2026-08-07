@@ -7,6 +7,8 @@ import {
   Query,
   Body,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
@@ -18,13 +20,15 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { MinioService } from 'src/storage/minio.service';
 
 @ApiTags('tickets')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tickets')
 export class TicketsController {
-  constructor(private readonly ticketsService: TicketsService) {}
+  constructor(private readonly ticketsService: TicketsService, private readonly minioService: MinioService) {}
 
   // ── Listados ── van antes que cualquier ruta con :id, para que Nest no
   // intente interpretar "todos" o "mantenimiento" como un idticket.
@@ -168,4 +172,29 @@ export class TicketsController {
   cancelar(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.cancelarTicket(id, user.idUsuarioApp);
   }
+
+  // MANEJO DE IMAGENES
+  // Usar endpoint para tickets y reparaciones, igual se guardan en la misma carpeta en Drive
+  @Patch('imagenes/:idticket/:unidad')
+  @UseInterceptors(FilesInterceptor('evidencias'))
+  async subirEvidencias(
+    @Param('idticket') idticket: string,
+    @Param('unidad') unidad: string,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    //  Mapeamos el arreglo de archivos para crear múltiples promesas de subida
+    const promesasSubida = files.map(file => {
+      const key = `ImagenesReparaciones/${unidad}/${idticket}/${Date.now()}-${file.originalname}`;
+      return this.minioService.uploadFile(
+        'app-media', 
+        key, 
+        file.buffer, 
+        file.mimetype
+      );
+    });
+
+    const urls = await Promise.all(promesasSubida);
+    return this.ticketsService.actualizarEvidencia(idticket, urls);
+  }
+
 }

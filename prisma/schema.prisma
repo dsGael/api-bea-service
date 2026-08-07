@@ -673,7 +673,6 @@ model lab_reparacion {
   evidencia_1       String[]          @default([])
   numero_serie      String?           @db.VarChar(255)
   id_dispositivo    String?           @db.VarChar(255)
-  video             String[]          @default([])
   cat_dispositivo   cat_dispositivo?  @relation(fields: [id_dispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_dispositivo")
   cat_dispositivo_t cat_dispositivo_t @relation(fields: [id_dispositivo_t], references: [idDispositivoT], onDelete: NoAction, map: "fk_reparacion_dispositivo_t")
   cat_tecnicos      cat_usuarios_app? @relation(fields: [id_tecnico_lab], references: [idUsuarioApp], onDelete: NoAction, onUpdate: NoAction, map: "fk_reparacion_tecnico")

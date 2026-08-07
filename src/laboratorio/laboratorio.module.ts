@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { LaboratorioController } from './laboratorio.controller';
 import { LaboratorioService } from './laboratorio.service';
-import { DriveService } from 'src/storage/drive/drive.service';
+import { MinioService } from 'src/storage/minio.service';
 
 @Module({
   controllers: [LaboratorioController],
-  providers: [LaboratorioService, DriveService],
+  providers: [LaboratorioService, MinioService], 
 })
 export class LaboratorioModule {}
