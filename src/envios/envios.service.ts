@@ -44,4 +44,13 @@ export class EnviosService {
       },
     });
   }
+
+  async actualizarEvidencia(idenvio: string, evidenciasUrl: string[]) {
+    await this.obtenerPorId(idenvio);
+    return this.prisma.envios.update({
+      where: { idenvio },
+      data: { imagen1: { push: evidenciasUrl } },
+    });
+  }
+
 }

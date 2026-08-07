@@ -85,4 +85,12 @@ export class RefaccionesService {
       data: { estado: dto.estado },
     });
   }
+
+  async actualizarEvidencia(idSolicitud: string, evidenciasUrl: string[]) {
+    return this.prisma.solicitud_refaccion.update({
+      where: { idSolicitud },
+      data: { imagen: { push: evidenciasUrl } },
+    });
+  }
+
 }
