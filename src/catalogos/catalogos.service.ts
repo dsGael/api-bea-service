@@ -266,4 +266,19 @@ export class CatalogosService {
   async listarTiposReparacion() { return this.prisma.cat_tipo_reparacion.findMany({ orderBy: { tipoReparacion: 'asc' } }); }
   async obtenerTipoReparacion(id: string) { return this.prisma.cat_tipo_reparacion.findUnique({ where: { idtipoReparacion: id } }); }
 
+
+  async listarDiagnosticosPorFalla(idFalla: string) {
+  return this.prisma.cat_diagnostico.findMany({
+    where: { idFalla },
+    select: {
+      idDiagnostico: true,
+      diagnostico: true,
+      reparacion: true,
+      fallaNombre: true,
+      
+    },
+    orderBy: { diagnostico: 'asc' },
+  });
+}
+
 }

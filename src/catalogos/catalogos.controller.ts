@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards, UseInterceptors } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CatalogosService } from './catalogos.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
@@ -359,4 +359,15 @@ export class CatalogosController {
 
   @Get('tipos-reparacion/:id')
   obtenerTipoReparacion(@Param('id') id: string) { return this.catalogosService.obtenerTipoReparacion(id); }
+
+  // ============================================================================
+  // SECCIÓN 3: ENDPOINTS DE CONSULTA ESPECÍFICA (Filtros, búsquedas, etc.)
+  // ============================================================================
+
+  @Get('diagnostico/falla')
+  @ApiOperation({ summary: 'Diagnósticos y reparaciones posibles para un tipo de dispositivo' })
+  listarDiagnosticosPorFalla(@Query('idFalla') idFalla: string) {
+  return this.catalogosService.listarDiagnosticosPorFalla(idFalla);
+  }
+
 }

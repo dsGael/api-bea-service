@@ -5,7 +5,7 @@ import { MinioService } from 'src/storage/minio.service';
 
 @Module({
   controllers: [UsuariosController],
-  providers: [UsuariosService],
-  exports: [UsuariosService,MinioService],
+  providers: [UsuariosService,MinioService],
+  exports: [UsuariosService,],
 })
 export class UsuariosModule {}

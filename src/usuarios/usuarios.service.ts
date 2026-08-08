@@ -188,7 +188,7 @@ export class UsuariosService {
 
     const actualizado = await this.prisma.cat_empleados.update({
       where: { idEmpleado },
-      data: { urlFotoPerfil: urlFoto, fechaModificacion: new Date() },
+      data: { foto: urlFoto, fechaModificacion: new Date() },
     });
 
     return actualizado;
