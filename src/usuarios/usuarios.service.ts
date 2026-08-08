@@ -181,4 +181,18 @@ export class UsuariosService {
 
     return empleado;
   }
+
+  async subirFotoPerfil(idEmpleado: string, urlFoto: string) {
+    const empleado = await this.obtenerPorId(idEmpleado);
+    if (!empleado) throw new NotFoundException('Empleado no encontrado');
+
+    const actualizado = await this.prisma.cat_empleados.update({
+      where: { idEmpleado },
+      data: { urlFotoPerfil: urlFoto, fechaModificacion: new Date() },
+    });
+
+    return actualizado;
+
+  }
+
 }

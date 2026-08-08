@@ -5,8 +5,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
 export class MinioService {
-  private client = new S3Client({
-    endpoint: process.env.MINIO_ENDPOINT!, // https://storage.beasonora.com
+  private readonly client = new S3Client({
+    endpoint: process.env.MINIO_ENDPOINT!, // https://storage.integran.mx
     region: 'us-east-1', // MinIO lo ignora pero el SDK lo requiere
     credentials: {
       accessKeyId: process.env.MINIO_ACCESS_KEY!,
