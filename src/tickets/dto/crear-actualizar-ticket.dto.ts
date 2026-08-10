@@ -1,4 +1,6 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
+
 
 export class CrearTicketDto {
   @IsOptional()
@@ -197,6 +199,8 @@ export class CrearTicketDto {
 
 
 }
+
+export class EditarTicketDto extends PartialType(CrearTicketDto) {}
 
 export class CrearFolioMantenimientoDto {
   @IsString()

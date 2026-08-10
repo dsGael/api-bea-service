@@ -10,145 +10,131 @@ import {
   UseInterceptors,
   UploadedFiles,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
-import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
-import { CerrarTicketDto,ValidarTicketDto} from './dto/cerrar-ticket.dto';
+import { CrearTicketDto, CrearFolioMantenimientoDto, EditarTicketDto } from './dto/crear-actualizar-ticket.dto';
+import { CerrarTicketDto, ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { MinioService } from 'src/storage/minio.service';
 
 @ApiTags('tickets')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tickets')
 export class TicketsController {
-  constructor(private readonly ticketsService: TicketsService, private readonly minioService: MinioService) {}
+  constructor(private readonly ticketsService: TicketsService) {}
 
-  // ── Listados ── van antes que cualquier ruta con :id, para que Nest no
-  // intente interpretar "todos" o "mantenimiento" como un idticket.
+  // ─────────────────────────────────────────────────────────────────────
+  // LISTADO ÚNICO PARAMETRIZADO
+  // Reemplaza: /tecnico/:id, /mantenimiento, /mantenimiento/abierto,
+  // /mantenimiento/tecnico/:id, /mantenimiento/abierto/tecnico/:id,
+  // /correctivos/abierto
+  //
+  // Ejemplos:
+  //   GET /tickets?isMantenimiento=true&isAbierto=true
+  //   GET /tickets?isMantenimiento=false&isAbierto=true        (correctivos abiertos)
+  //   GET /tickets?idtecnico=xxx&isActivo=true                 (mis pendientes)
+  // ─────────────────────────────────────────────────────────────────────
 
   @Get()
-  @Roles('mesacontrol',  'admin', 'superadmin', 'almacen', 'consultas')
-  @ApiOperation({ summary: 'Lista todos los folios con filtros y paginación' })
-  listarTodos(@Query() query: ListarTicketsQueryDto) {
-    return this.ticketsService.listarTodos(query);
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'admin', 'superadmin', 'almacen', 'consultas')
+  @ApiOperation({ summary: 'Lista folios con filtros dinámicos (reemplaza los endpoints antiguos)' })
+  listarTodos(@Query() query: ListarTicketsQueryDto, @CurrentUser() user: any) {
+    console.log('Query parameters:', query);
+    return this.ticketsService.listarTodos(query, { idUsuarioApp: user.idUsuarioApp, rol: user.rol });
   }
 
-  @Get('tecnico/:idtecnico')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios abiertos/en validación/pendientes asignados a un técnico' })
-  listarPorTecnico(@Param('idtecnico') idtecnico: string) {
-    return this.ticketsService.listarPorTecnico(idtecnico);
-  }
-
-  @Get('mantenimiento')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios de mantenimiento preventivo' })
-  listarMantenimiento(@Query() query: ListarTicketsQueryDto) {
-    return this.ticketsService.listarMantenimiento(query);
-  }
-
-  @Get('mantenimiento/tecnico/:idtecnico')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios de mantenimiento preventivo asignados a un técnico' })
-  listarMantenimientoPorTecnico(@Param('idtecnico') idtecnico: string) {
-    return this.ticketsService.listarMantenimientoPorTecnico(idtecnico);
-  }
-
-  @Get('mantenimiento/abierto')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios de mantenimiento preventivo abiertos' })
-  listarMantenimientoAbiertos(@Query() query: ListarTicketsQueryDto) {
-    return this.ticketsService.listarMantenimientoAbiertos(query);
-  }
-
-  @Get('mantenimiento/abierto/tecnico/:idtecnico')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios de mantenimiento preventivo abiertos asignados a un técnico' })
-  listarMantenimientoAbiertosPorTecnico(@Param('idtecnico') idtecnico: string) {
-    return this.ticketsService.listarMantenimientoAbiertosPorTecnico(idtecnico);
-  }
-
-  @Get('correctivos/abierto')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
-  @ApiOperation({ summary: 'Folios correctivos abiertos' })
-  listarCorrectivosAbiertos(@Query() query: ListarTicketsQueryDto) {
-    return this.ticketsService.listarCorrectivosAbiertos(query);
-  }
-
-  // ── Creación ──
+  // ─────────────────────────────────────────────────────────────────────
+  // CREACIÓN Y EDICIÓN (con fotos de la falla)
+  // ─────────────────────────────────────────────────────────────────────
 
   @Post()
   @Roles('superadmin', 'admin', 'mesacontrol', 'capturista')
-  @ApiOperation({ summary: 'Crea un folio normal (reportado por falla)' })
-  crear(@Body() dto: CrearTicketDto, @CurrentUser() user: any) {
-    return this.ticketsService.crearTicket(dto, user.idUsuarioApp);
+  @UseInterceptors(FilesInterceptor('evidenciasFalla'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Crea un folio normal, con fotos opcionales de la falla' })
+  crear(
+    @Body() dto: CrearTicketDto,
+    @CurrentUser() user: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return this.ticketsService.crearTicket(dto, user.idUsuarioApp, files);
   }
 
   @Post('mantenimiento')
-  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol',  'admin', 'superadmin')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'admin', 'superadmin')
+  @UseInterceptors(FilesInterceptor('evidenciasFalla'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Crea un folio de mantenimiento preventivo, auto-asignado al técnico' })
   crearMantenimiento(
     @Body() dto: CrearFolioMantenimientoDto,
     @CurrentUser() user: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    return this.ticketsService.crearFolioMantenimiento(dto, user.idUsuarioApp, user.idUsuarioApp);
+    return this.ticketsService.crearFolioMantenimiento(dto, user.idUsuarioApp, user.idUsuarioApp, files);
   }
 
-  // ── Detalle ── después de las rutas literales de arriba
+  @Patch(':id')
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'admin', 'superadmin', 'capturista')
+  @UseInterceptors(FilesInterceptor('evidenciasFalla'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Edita un folio abierto y/o agrega más fotos de la falla' })
+  editar(
+    @Param('id') id: string,
+    @Body() dto: EditarTicketDto,
+    @CurrentUser() user: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return this.ticketsService.editarTicket(id, dto, user.idUsuarioApp, files);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // DETALLE — después de las rutas literales de arriba
+  // ─────────────────────────────────────────────────────────────────────
 
   @Get(':id')
-  @Roles(
-    'tecnicojr',
-    'tecnicosinior',
-    'mesacontrol',
-    'admin',
-    'superadmin',
-    'almacen',
-    'consultas',
-  )
-  obtenerPorId(@Param('id') id: string) {
-    return this.ticketsService.obtenerPorId(id);
+  @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'admin', 'superadmin', 'almacen', 'consultas')
+  @ApiOperation({ summary: 'Obtiene el detalle completo de un folio' })
+  obtenerPorId(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.obtenerPorId(id, { idUsuarioApp: user.idUsuarioApp, rol: user.rol });
   }
 
-  // ── Transiciones de estado ──
+  // ─────────────────────────────────────────────────────────────────────
+  // TRANSICIONES DE ESTADO
+  // ─────────────────────────────────────────────────────────────────────
 
   @Patch(':id/asignar')
-  @Roles('mesacontrol',  'admin', 'superadmin')
+  @Roles('mesacontrol', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Asigna un técnico al folio (no cambia el estado)' })
-  asignar(
-    @Param('id') id: string,
-    @Body() dto: AsignarTecnicoDto,
-    @CurrentUser() user: any,
-  ) {
+  asignar(@Param('id') id: string, @Body() dto: AsignarTecnicoDto, @CurrentUser() user: any) {
     return this.ticketsService.asignarTecnico(id, dto, user.idUsuarioApp);
   }
 
   @Patch(':id/reparacion')
   @Roles('tecnicojr', 'tecnicosinior')
-  @ApiOperation({ summary: 'Técnico registra su reparación: Abierto -> Validación MC' })
+  @UseInterceptors(FilesInterceptor('evidenciasReparacion'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Técnico registra su reparación con evidencia fotográfica (Abierto -> Validación MC)',
+  })
   registrarReparacion(
     @Param('id') id: string,
     @Body() dto: CerrarTicketDto,
     @CurrentUser() user: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    return this.ticketsService.registrarReparacion(id, dto, user.idUsuarioApp);
+    return this.ticketsService.registrarReparacion(id, dto, user.idUsuarioApp, files);
   }
 
   @Patch(':id/validar')
-  @Roles('mesacontrol',  'admin', 'superadmin')
+  @Roles('mesacontrol', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Mesa de control aprueba (Finalizado) o rechaza (regresa a Abierto)' })
-  validar(
-    @Param('id') id: string,
-    @Body() dto: ValidarTicketDto,
-    @CurrentUser() user: any,
-  ) {
+  validar(@Param('id') id: string, @Body() dto: ValidarTicketDto, @CurrentUser() user: any) {
     return this.ticketsService.validarTicket(id, dto, user.idUsuarioApp);
   }
 
@@ -172,29 +158,4 @@ export class TicketsController {
   cancelar(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.cancelarTicket(id, user.idUsuarioApp);
   }
-
-  // MANEJO DE IMAGENES
-  // Usar endpoint para tickets y reparaciones, igual se guardan en la misma carpeta en Drive
-  @Patch('imagenes/:idticket/:unidad')
-  @UseInterceptors(FilesInterceptor('evidencias'))
-  async subirEvidencias(
-    @Param('idticket') idticket: string,
-    @Param('unidad') unidad: string,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    //  Mapeamos el arreglo de archivos para crear múltiples promesas de subida
-    const promesasSubida = files.map(file => {
-      const key = `ImagenesReparaciones/${unidad}/${idticket}/${Date.now()}-${file.originalname}`;
-      return this.minioService.uploadFile(
-        'app-media', 
-        key, 
-        file.buffer, 
-        file.mimetype
-      );
-    });
-
-    const urls = await Promise.all(promesasSubida);
-    return this.ticketsService.actualizarEvidencia(idticket, urls);
-  }
-
 }

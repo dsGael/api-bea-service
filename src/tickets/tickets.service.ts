@@ -1,9 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { CatalogosService } from '../catalogos/catalogos.service';
-import { CrearTicketDto,CrearFolioMantenimientoDto } from './dto/crear-actualizar-ticket.dto';
-import { CerrarTicketDto,ValidarTicketDto } from './dto/cerrar-ticket.dto';
+import { MinioService } from '../storage/minio.service';
+import { CrearTicketDto, CrearFolioMantenimientoDto, EditarTicketDto } from './dto/crear-actualizar-ticket.dto';
+import { CerrarTicketDto, ValidarTicketDto } from './dto/cerrar-ticket.dto';
 import { AsignarTecnicoDto } from './dto/asignar-tecnico.dto';
 import { ListarTicketsQueryDto } from './dto/listar-tickets.dto';
 import { Prisma } from '@prisma/client';
@@ -19,17 +19,51 @@ const ESTADO_PENDIENTE_ID = 'pdterefac';
 // distingue mantenimiento preventivo (dispara el folio con prefijo "MTTO")
 const TIPO_MANTENIMIENTO_ID = 'pr3v3nt1v0';
 
+// Roles que solo pueden ver/tocar SUS PROPIOS tickets, sin importar qué manden en el query
+const ROLES_TECNICO = ['tecnicojr', 'tecnicosinior'];
+
+export interface UsuarioActual {
+  idUsuarioApp: string;
+  rol: string;
+}
+
 @Injectable()
 export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly catalogos: CatalogosService,
+    private readonly minioService: MinioService,
   ) {}
 
-  async listarTodos(query: ListarTicketsQueryDto) {
-    const { page = 1, limit = 20, ...filtros } = query;
+  private readonly TICKET_INCLUDES = {
+    cat_falla: true,
+    cat_autobus: true,
+    cat_prioridad: true,
+    estado: true,
+    cat_tecnicos: true,
+    cat_dispositivo_t: true,
+    cat_dispositivo: true,
+    cat_ruta: true,
+    cat_empresa: true,
+  };
 
-    const where = {
+  // ─────────────────────────────────────────────────────────────────────
+  // LISTADO ÚNICO PARAMETRIZADO
+  // Reemplaza: /tecnico/:id, /mantenimiento, /mantenimiento/abierto,
+  // /mantenimiento/tecnico/:id, /mantenimiento/abierto/tecnico/:id,
+  // /correctivos/abierto
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Único punto de entrada para listados. Construye el `where` dinámicamente
+   * a partir de filtros literales + flags de negocio (isMantenimiento, isAbierto, isActivo).
+   *
+   * `usuario` se usa para forzar idtecnico si el rol es técnico — el query nunca
+   * puede sobreescribir esto, por eso se aplica AL FINAL.
+   */
+  async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
+    const { page = 1, limit = 20, isMantenimiento, isAbierto, isActivo, ...filtros } = query;
+
+    const where: Prisma.bin_ticketWhereInput = {
       ...(filtros.idestado && { idestado: filtros.idestado }),
       ...(filtros.idautobus && { idautobus: filtros.idautobus }),
       ...(filtros.idruta && { idruta: filtros.idruta }),
@@ -37,152 +71,53 @@ export class TicketsService {
       ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
     };
 
-    const [tickets, total] = await this.prisma.$transaction([
-      this.prisma.bin_ticket.findMany({
-        where,
-        include: this.TICKET_INCLUDES,
-        orderBy: { fechacreacion: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.bin_ticket.count({ where }),
-    ]);
+    // Flags de negocio (reemplazan a los endpoints dedicados)
+    if (isMantenimiento === 'true') {
+      where.tiporeparacion = TIPO_MANTENIMIENTO_ID;
+    } else if (isMantenimiento === 'false') {
+      where.tiporeparacion = { not: TIPO_MANTENIMIENTO_ID };
+    }
 
-    return {
-      data: tickets,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-    };
-  }
+    if (isAbierto === 'true') {
+      where.idestado = ESTADO_ABIERTO_ID; // pisa idestado si venía en filtros; es intencional
+    }
 
+    if (isActivo === 'true') {
+      where.idestado = { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] };
+    }
 
-  async listarMantenimiento(query: ListarTicketsQueryDto) {
-    const { page = 1, limit = 20, ...filtros } = query;
-    const where = {
-      ...(filtros.idestado && { idestado: filtros.idestado }),
-      ...(filtros.idautobus && { idautobus: filtros.idautobus }),
-      ...(filtros.idruta && { idruta: filtros.idruta }),
-      ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }),
-      ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
-      tiporeparacion: TIPO_MANTENIMIENTO_ID, // Filtra solo tickets de mantenimiento preventivo
-    };
+    // ── Seguridad: un técnico NUNCA puede ver tickets de otro técnico ──
+    // Se aplica después de todo lo anterior para que no pueda ser
+    // sobreescrito por ningún combo de query params.
+    if (ROLES_TECNICO.includes(usuario.rol)) {
+      where.idtecnico = usuario.idUsuarioApp;
+    }
 
     const [tickets, total] = await this.prisma.$transaction([
       this.prisma.bin_ticket.findMany({
         where,
         include: this.TICKET_INCLUDES,
         orderBy: { fechacreacion: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
       }),
       this.prisma.bin_ticket.count({ where }),
     ]);
 
     return {
       data: tickets,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     };
-    
   }
 
-private readonly TICKET_INCLUDES = {
-  cat_falla: true,
-  cat_autobus: true,
-  cat_prioridad: true,
-  estado: true,
-  cat_tecnicos: true,
-  cat_dispositivo_t: true,
-  cat_dispositivo:true,
-  cat_ruta:true,
-  cat_empresa:true
-};
-
-async listarCorrectivosAbiertos(query: ListarTicketsQueryDto) {
-  const { page = 1, limit = 20, ...filtros } = query;
-  const where = {
-    ...(filtros.idautobus && { idautobus: filtros.idautobus }),
-    ...(filtros.idruta && { idruta: filtros.idruta }),
-    ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }), 
-    ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
-    tiporeparacion: { not: TIPO_MANTENIMIENTO_ID },
-    idestado: { in: [ESTADO_ABIERTO_ID] },
-  };
-
-  const [tickets, total] = await this.prisma.$transaction([
-    this.prisma.bin_ticket.findMany({
-      where,
-      include: this.TICKET_INCLUDES,
-      orderBy: { fechacreacion: 'desc' },
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-    }),
-    this.prisma.bin_ticket.count({ where }),
-  ]);
-
-  return {
-    data: tickets,
-    meta: { 
-      total, 
-      page: Number(page), 
-      limit: Number(limit), 
-      totalPages: Math.ceil(total / Number(limit)) 
-    },
-  };
-}
-
-async listarMantenimientoAbiertos(query: ListarTicketsQueryDto) {
-  const { page = 1, limit = 20, ...filtros } = query;
-  
-  const where = {
-    ...(filtros.idautobus && { idautobus: filtros.idautobus }),
-    ...(filtros.idruta && { idruta: filtros.idruta }),
-    ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }), 
-    ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
-    tiporeparacion: TIPO_MANTENIMIENTO_ID,
-    idestado: { in: [ESTADO_ABIERTO_ID] },
-  };
-
-  const [tickets, total] = await this.prisma.$transaction([
-    this.prisma.bin_ticket.findMany({
-      where,
-      include: this.TICKET_INCLUDES,
-      orderBy: { fechacreacion: 'desc' },
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-    }),
-    this.prisma.bin_ticket.count({ where }),
-  ]);
-
-  return {
-    data: tickets,
-    meta: { 
-      total, 
-      page: Number(page), 
-      limit: Number(limit), 
-      totalPages: Math.ceil(total / Number(limit)) 
-    },
-  };
-}
-
-async listarMantenimientoPorTecnico(idtecnico: string) {
-  return this.prisma.bin_ticket.findMany({
-    where: {
-      idtecnico,
-      tiporeparacion: TIPO_MANTENIMIENTO_ID,
-    },
-    include: this.TICKET_INCLUDES,
-    orderBy: { fechacreacion: 'desc' },
-  });
-}
-
-async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTicketsQueryDto = {}) {
-  // Reutilizamos la lógica de filtrado y paginación
-  return this.listarMantenimientoAbiertos({
-    ...query,
-    idtecnico,
-  });
-}
-
-  // ── Resolvers: cada uno reemplaza una fórmula que antes vivía en AppSheet ──
+  // ─────────────────────────────────────────────────────────────────────
+  // RESOLVERS — cada uno reemplaza una fórmula que antes vivía en AppSheet
+  // ─────────────────────────────────────────────────────────────────────
 
   private async resolverIdEmpresa(
     idempresa?: string,
@@ -210,7 +145,6 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     throw new BadRequestException('El idempresa es obligatorio.');
   }
 
-
   private async resolverIdRuta(idruta?: string, numeroEconomico?: string): Promise<string | undefined> {
     if (idruta) return idruta;
     if (!numeroEconomico) return undefined;
@@ -230,7 +164,6 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     return ruta?.idRuta;
   }
 
-
   private async resolverNumeroEconomico(idautobus?: string): Promise<string | undefined> {
     if (!idautobus) return undefined;
     const autobus = await this.prisma.cat_autobus.findUnique({
@@ -239,7 +172,6 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     });
     return autobus?.numeroEconomico ?? undefined;
   }
-
 
   private async resolverOperador(
     numeroEconomico?: string,
@@ -259,7 +191,6 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     };
   }
 
-  
   private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
     if (!iddispositivo) return undefined;
     const dispositivo = await this.prisma.cat_dispositivo.findUnique({
@@ -277,6 +208,31 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     };
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // MANEJO DE ARCHIVOS (MinIO)
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Sube un lote de archivos a MinIO bajo una carpeta consistente y
+   * devuelve el arreglo de URLs resultante. Reutilizable para falla y reparación.
+   */
+  private async subirArchivos(
+    files: Array<Express.Multer.File> | undefined,
+    carpeta: string, // ej: `Fallas/${unidad}/${idticket}` o `Reparaciones/${unidad}/${idticket}`
+  ): Promise<string[]> {
+    if (!files || files.length === 0) return [];
+
+    const promesas = files.map((file) => {
+      const key = `${carpeta}/${Date.now()}-${file.originalname}`;
+      return this.minioService.uploadFile('app-media', key, file.buffer, file.mimetype);
+    });
+
+    return Promise.all(promesas);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CREACIÓN
+  // ─────────────────────────────────────────────────────────────────────
 
   private async crearTicketBase(
     campos: {
@@ -327,6 +283,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
           idempresa: campos.idempresa,
           creadopor: usuario,
           fechacreacion: ahora,
+          imagenfalla1: [], // String[] — se llena después de subir archivos, si los hay
         },
       });
     } catch (error) {
@@ -339,10 +296,15 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     }
   }
 
-  async crearTicket(dto: CrearTicketDto, usuario: string) {
+  /**
+   * Crea el ticket normal y, si vienen archivos, los sube a MinIO y guarda
+   * las URLs en `imagenfalla1`. La subida ocurre DESPUÉS de crear el ticket
+   * porque necesita el idticket para armar la ruta del bucket.
+   */
+  async crearTicket(dto: CrearTicketDto, usuario: string, files?: Array<Express.Multer.File>) {
     const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
 
-    return this.crearTicketBase(
+    const ticket = await this.crearTicketBase(
       {
         idautobus: dto.idautobus,
         iddispositivo: dto.iddispositivo,
@@ -355,47 +317,100 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
       },
       usuario,
     );
+
+    if (files && files.length > 0) {
+      const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+      const urls = await this.subirArchivos(files, `Fallas/${numeroeconomico}/${ticket.idticket}`);
+      return this.prisma.bin_ticket.update({
+        where: { idticket: ticket.idticket },
+        data: { imagenfalla1: urls },
+      });
+    }
+
+    return ticket;
   }
 
+  /**
+   * Crea el folio de mantenimiento preventivo (auto-asignado al técnico que lo crea).
+   * Igual que crearTicket, sube evidencia de falla si viene.
+   */
   async crearFolioMantenimiento(
     dto: CrearFolioMantenimientoDto,
     idUsuarioApp: string,
     usuario: string,
+    files?: Array<Express.Multer.File>,
   ) {
     const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idUsuarioApp);
 
-    return this.crearTicketBase(
+    const ticket = await this.crearTicketBase(
       {
         idautobus: dto.idautobus,
         iddispositivo: dto.iddispositivo,
         idcategoria: dto.idcategoria,
         comentarios: dto.comentarios,
         idempresa: idEmpresaFinal,
-        idtecnico: idUsuarioApp, 
+        idtecnico: idUsuarioApp,
         tiporeparacion: TIPO_MANTENIMIENTO_ID,
       },
       usuario,
     );
+
+    if (files && files.length > 0) {
+      const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+      const urls = await this.subirArchivos(files, `Fallas/${numeroeconomico}/${ticket.idticket}`);
+      return this.prisma.bin_ticket.update({
+        where: { idticket: ticket.idticket },
+        data: { imagenfalla1: urls },
+      });
+    }
+
+    return ticket;
   }
 
-  async listarPorTecnico(idtecnico: string) {
-    return this.prisma.bin_ticket.findMany({
-      where: {
-        idtecnico,
-        idestado: { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] },
+  /**
+   * Permite editar un ticket abierto: actualiza campos y/o agrega más
+   * evidencias de falla (append al arreglo existente, nunca lo reemplaza).
+   */
+  async editarTicket(
+    idticket: string,
+    dto: EditarTicketDto,
+    usuario: string,
+    files?: Array<Express.Multer.File>,
+  ) {
+    const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
+    if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    if ([ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID].includes(ticket.idestado ?? '')) {
+      throw new BadRequestException('No se puede editar un ticket finalizado o cancelado');
+    }
+
+    let nuevasUrls: string[] = [];
+    if (files && files.length > 0) {
+      const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+      nuevasUrls = await this.subirArchivos(files, `Fallas/${numeroeconomico}/${idticket}`);
+    }
+
+    return this.prisma.bin_ticket.update({
+      where: { idticket },
+      data: {
+        ...(dto.idfalla && { idfalla: dto.idfalla }),
+        ...(dto.idcategoria && { idcategoria: dto.idcategoria }),
+        ...(dto.idprioridad && { idprioridad: dto.idprioridad }),
+        ...(dto.comentarios && { comentarios: dto.comentarios }),
+        ...(nuevasUrls.length > 0 && {
+          imagenfalla1: { push: nuevasUrls }, // append, no reemplaza
+        }),
+        modificadopor: usuario,
+        fechamodificacion: new Date(),
       },
-      include: {
-        cat_falla: true,
-        cat_autobus: true,
-        cat_prioridad: true,
-        estado: true,
-        cat_dispositivo_t: true,
-      },
-      orderBy: { fechacreacion: 'desc' },
     });
   }
 
-  async obtenerPorId(idticket: string) {
+  // ─────────────────────────────────────────────────────────────────────
+  // DETALLE
+  // ─────────────────────────────────────────────────────────────────────
+
+  async obtenerPorId(idticket: string, usuario: UsuarioActual) {
     const ticket = await this.prisma.bin_ticket.findUnique({
       where: { idticket },
       include: {
@@ -411,8 +426,18 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     });
 
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
+
+    // Un técnico no puede ver el detalle de un folio que no es suyo
+    if (ROLES_TECNICO.includes(usuario.rol) && ticket.idtecnico !== usuario.idUsuarioApp) {
+      throw new ForbiddenException('No tienes acceso a este folio');
+    }
+
     return ticket;
   }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // TRANSICIONES DE ESTADO
+  // ─────────────────────────────────────────────────────────────────────
 
   async asignarTecnico(idticket: string, dto: AsignarTecnicoDto, usuario: string) {
     const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
@@ -429,10 +454,20 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
   }
 
   /**
-   * El técnico registra su reparación: crea el detalle Y somete el folio a
-   * validación de mesa de control (Abierto -> Validación MC).
+   * El técnico registra su reparación: sube evidencia de reparación (String[]),
+   * crea el detalle, y somete el folio a validación de mesa de control
+   * (Abierto -> Validación MC).
+   *
+   * La subida a MinIO ocurre ANTES de abrir la transacción de Prisma:
+   * si la subida falla, no queremos una transacción de BD abierta esperando
+   * I/O de red. Solo si la subida tiene éxito se procede a la transacción.
    */
-  async registrarReparacion(idticket: string, dto: CerrarTicketDto, usuario: string) {
+  async registrarReparacion(
+    idticket: string,
+    dto: CerrarTicketDto,
+    usuario: string,
+    files?: Array<Express.Multer.File>,
+  ) {
     const ticket = await this.prisma.bin_ticket.findUnique({ where: { idticket } });
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
 
@@ -442,6 +477,9 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
     if (ticket.idestado === ESTADO_VALIDACION_ID) {
       throw new BadRequestException('El ticket ya está en validación de mesa de control');
     }
+
+    const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+    const evidencias = await this.subirArchivos(files, `Reparaciones/${numeroeconomico}/${idticket}`);
 
     const ahora = new Date();
 
@@ -459,7 +497,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
 
       await tx.bin_ticket_detail.create({
         data: {
-          idDetalle: idDetalle,
+          idDetalle,
           idTicket: idticket,
           fechaHora: ahora,
           folio: ticket.folio,
@@ -467,7 +505,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
           numeroeconomico: ticket.numeroeconomico,
           idRuta: ticket.idruta,
           idDispositivo: ticket.iddispositivo,
-          idDispositivoT: ticket.iddispositivot, 
+          idDispositivoT: ticket.iddispositivot,
           idFalla: ticket.idfalla,
           idCategoria: ticket.idcategoria,
           idPrioridad: ticket.idprioridad,
@@ -475,7 +513,7 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
           Diagnostico: dto.diagnostico,
           Reparacion: dto.reparacion,
           comentarios: dto.comentarios,
-          imagen1: dto.imagen1,
+          imagen1:evidencias, // String[] — pruebas de reparación subidas por el técnico
           fechaResolucion: ahora,
           creadoPor: usuario,
           fechaCreacion: ahora,
@@ -553,12 +591,4 @@ async listarMantenimientoAbiertosPorTecnico(idtecnico: string, query: ListarTick
       data: { idestado: ESTADO_CANCELADO_ID, modificadopor: usuario, fechamodificacion: new Date() },
     });
   }
-
-    async actualizarEvidencia(id: string, evidenciasUrl: string[]) {
-    return this.prisma.bin_ticket.update({
-      where: { idticket: id },
-      data: { imagenfalla1: { push: evidenciasUrl } },
-    });
-  }
-
 }
