@@ -370,4 +370,10 @@ export class CatalogosController {
   return this.catalogosService.listarDiagnosticosPorFalla(idFalla);
   }
 
+  @Get('dispositivo/tipo/:tipo')
+  @ApiOperation({ summary: 'Dispositivos disponibles para un tipo específico' })
+  listarDispositivosPorTipo(@Param('tipo') tipo: string) {
+    return this.catalogosService.listarDispositivosPorTipo(tipo);
+  }
+
 }

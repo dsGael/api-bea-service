@@ -29,11 +29,9 @@ export class CerrarTicketDto {
   @IsOptional()
   imagen1?: string[];
 
-  @ApiPropertyOptional({ description: 'URL de la segunda evidencia fotográfica' })
-  @IsArray()
-  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })// Puedes cambiarlo a @IsUrl() si guardas enlaces completos de S3/Cloud Storage
   @IsOptional()
-  video?: string[];
+  @IsString() // O @IsDateString()
+  fechaHora?: string;
 
 }
 

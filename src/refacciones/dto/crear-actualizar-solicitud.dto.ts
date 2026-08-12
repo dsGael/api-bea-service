@@ -1,9 +1,14 @@
-import { IsString, IsOptional, IsNumber, Min, IsIn, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsIn } from 'class-validator';
 
 export class CrearSolicitudDto {
+
   @IsOptional()
   @IsString()
-  idticket?: string; // opcional — puede solicitarse sin estar ligado a un folio específico
+  idSolicitud?: string; // Opcional — puede solicitarse sin estar ligado a un folio
+
+  @IsOptional()
+  @IsString()
+  idticket?: string; // Opcional — puede solicitarse sin estar ligado a un folio
 
   @IsString()
   idDispositivo!: string; // idDispositivoT — tipo de refacción/pieza
@@ -14,17 +19,17 @@ export class CrearSolicitudDto {
   cantidad?: number = 1;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true, message: 'Cada elemento dentro del arreglo debe ser un texto (URL)' })
-  imagen?: string[]; 
+  @IsString()
+  idtecnico?: string;
+
 }
 
-
 export class ActualizarEstadoSolicitudDto {
-  @IsIn(['aprobada', 'rechazada', 'entregada'])
-  estado!: 'aprobada' | 'rechazada' | 'entregada';
+  @IsIn(['pendiente', 'entregada', 'rechazado', 'no hay stock'], {
+    message: 'El estado debe ser: pendiente, entregada, rechazado, no hay stock',
+  })
+  estado!: 'pendiente' | 'entregada' | 'rechazado' | 'no hay stock';
 
-  // Solo requerido cuando estado = 'entregada' — de dónde sale la pieza
   @IsOptional()
   @IsString()
   idAlmacen?: string;

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MovimientosService } from '../almacen/movimientos.service';
-import { CrearSolicitudDto,ActualizarEstadoSolicitudDto } from './dto/crear-actualizar-solicitud.dto';
+import { CrearSolicitudDto, ActualizarEstadoSolicitudDto } from './dto/crear-actualizar-solicitud.dto';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
@@ -11,25 +11,73 @@ export class RefaccionesService {
     private readonly movimientos: MovimientosService,
   ) {}
 
+  async crear(dto: CrearSolicitudDto, idUsuarioApp: string) {
+    return this.prisma.solicitud_refaccion.create({
+      data: {
+        idSolicitud: dto.idSolicitud ? dto.idSolicitud: randomUUID(),
+        idticket: dto.idticket,
+        idDispositivo: dto.idDispositivo,
+        cantidad: dto.cantidad ?? 1,
+        idTecnico: idUsuarioApp,
+        estado: 'pendiente',
+        fecha: new Date(),
+        // No pasamos 'imagen' porque Prisma pondrá el default([]) de tu esquema
+      },
+    });
+  }
+
+  async actualizarEvidencia(idSolicitud: string, evidenciasUrl: string[]) {
+    return this.prisma.solicitud_refaccion.update({
+      where: { idSolicitud },
+      data: { imagen: { push: evidenciasUrl } },
+    });
+  }
+
+  async actualizarEstado(
+    idSolicitud: string,
+    dto: ActualizarEstadoSolicitudDto,
+    usuario: string,
+  ) {
+    const solicitud = await this.prisma.solicitud_refaccion.findUnique({
+      where: { idSolicitud },
+    });
+    
+    if (!solicitud) throw new NotFoundException('Solicitud no encontrada');
+
+    if (dto.estado === 'entregada') {
+      if (!dto.idAlmacen) {
+        throw new BadRequestException('idAlmacen es requerido para marcar como entregada');
+      }
+      if (!solicitud.idDispositivo) {
+        throw new BadRequestException('La solicitud no tiene un dispositivo asociado');
+      }
+
+      // Registro de Salida de Inventario
+      await this.movimientos.registrarMovimiento(
+        {
+          tipoMovimiento: 'salida', 
+          idDispositivo: solicitud.idDispositivo,
+          cantidad: Number(solicitud.cantidad ?? 1),
+          idAlmacenOrigen: dto.idAlmacen,
+          idAlmacenDestino: dto.idAlmacen, 
+          comentario: `Entrega a técnico. Solicitud ID: ${idSolicitud}`,
+        },
+        usuario,
+      );
+    }
+
+    return this.prisma.solicitud_refaccion.update({
+      where: { idSolicitud },
+      data: { estado: dto.estado },
+    });
+  }
+
+  // --- Métodos de Lectura (GET) ---
+
   async obtenerPorId(idSolicitud: string) {
     return this.prisma.solicitud_refaccion.findUnique({
       where: { idSolicitud },
       include: { cat_dispositivo_t: true, bin_ticket: true, cat_tecnicos: true },
-    });
-  }
-
-  async crear(dto: CrearSolicitudDto, idUsuarioApp: string) {
-    return this.prisma.solicitud_refaccion.create({
-      data: {
-        idSolicitud: randomUUID(),
-        idticket: dto.idticket,
-        idDispositivo: dto.idDispositivo,
-        cantidad: dto.cantidad ?? 1,
-        idTecnico: idUsuarioApp, // la columna se sigue llamando idTecnico, ahora guarda idUsuarioApp
-        estado: 'pendiente',
-        imagen: dto.imagen,
-        fecha: new Date(),
-      },
     });
   }
 
@@ -48,49 +96,4 @@ export class RefaccionesService {
       orderBy: { fecha: 'desc' },
     });
   }
-
-  async actualizarEstado(
-    idSolicitud: string,
-    dto: ActualizarEstadoSolicitudDto,
-    usuario: string,
-  ) {
-    const solicitud = await this.prisma.solicitud_refaccion.findUnique({
-      where: { idSolicitud },
-    });
-    if (!solicitud) throw new NotFoundException('Solicitud no encontrada');
-
-    if (dto.estado === 'entregada') {
-      if (!dto.idAlmacen) {
-        throw new BadRequestException('idAlmacen es requerido para marcar como entregada');
-      }
-      if (!solicitud.idDispositivo) {
-        throw new BadRequestException('La solicitud no tiene un dispositivo asociado');
-      }
-
-      await this.movimientos.registrarMovimiento(
-        {
-          tipoMovimiento: 'entrada',
-          idDispositivo: solicitud.idDispositivo,
-          cantidad: Number(solicitud.cantidad ?? 1),
-          idAlmacenOrigen: dto.idAlmacen,
-          idAlmacenDestino: dto.idAlmacen,
-          comentario: `Entrega de solicitud ${idSolicitud}`,
-        },
-        usuario,
-      );
-    }
-
-    return this.prisma.solicitud_refaccion.update({
-      where: { idSolicitud },
-      data: { estado: dto.estado },
-    });
-  }
-
-  async actualizarEvidencia(idSolicitud: string, evidenciasUrl: string[]) {
-    return this.prisma.solicitud_refaccion.update({
-      where: { idSolicitud },
-      data: { imagen: { push: evidenciasUrl } },
-    });
-  }
-
 }

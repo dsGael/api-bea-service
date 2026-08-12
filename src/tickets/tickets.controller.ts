@@ -116,7 +116,7 @@ export class TicketsController {
   }
 
   @Patch(':id/reparacion')
-  @Roles('tecnicojr', 'tecnicosinior')
+  @Roles('tecnicojr', 'tecnicosinior', 'admin', 'superadmin', 'mesacontrol')
   @UseInterceptors(FilesInterceptor('evidenciasReparacion'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
@@ -128,6 +128,9 @@ export class TicketsController {
     @CurrentUser() user: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
+    console.log('Files received:', files);
+    console.log('DTO received:', dto);
+
     return this.ticketsService.registrarReparacion(id, dto, user.idUsuarioApp, files);
   }
 
@@ -139,7 +142,7 @@ export class TicketsController {
   }
 
   @Patch(':id/pendiente')
-  @Roles('tecnicojr', 'tecnicosinior', 'almacen')
+  @Roles('tecnicojr', 'tecnicosinior', 'almacen', 'mesacontrol', 'admin', 'superadmin')
   @ApiOperation({ summary: 'Marca el folio como Pendiente por falta de refacción' })
   marcarPendiente(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.marcarPendiente(id, user.idUsuarioApp);

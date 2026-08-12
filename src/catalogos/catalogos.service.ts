@@ -281,4 +281,14 @@ export class CatalogosService {
   });
 }
 
+async listarDispositivosPorTipo(tipo: string) {
+  return this.prisma.cat_dispositivo_t.findMany({
+    where: { tipo: tipo },
+    select: {
+      idDispositivoT: true,
+      nombre: true,
+    }   
+  }) ;
+}
+
 }

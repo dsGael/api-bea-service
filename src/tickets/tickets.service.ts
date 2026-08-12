@@ -20,7 +20,7 @@ const ESTADO_PENDIENTE_ID = 'pdterefac';
 const TIPO_MANTENIMIENTO_ID = 'pr3v3nt1v0';
 
 // Roles que solo pueden ver/tocar SUS PROPIOS tickets, sin importar qué manden en el query
-const ROLES_TECNICO = ['tecnicojr', 'tecnicosinior'];
+const ROLES_TECNICO = new Set(['tecnicojr', 'tecnicosinior']);
 
 export interface UsuarioActual {
   idUsuarioApp: string;
@@ -87,9 +87,9 @@ export class TicketsService {
     }
 
     // ── Seguridad: un técnico NUNCA puede ver tickets de otro técnico ──
-    // Se aplica después de todo lo anterior para que no pueda ser
+    // Se aplica después de lo anterior para que no pueda ser
     // sobreescrito por ningún combo de query params.
-    if (ROLES_TECNICO.includes(usuario.rol)) {
+    if (ROLES_TECNICO.has(usuario.rol)) {
       where.idtecnico = usuario.idUsuarioApp;
     }
 
@@ -428,7 +428,7 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
 
     // Un técnico no puede ver el detalle de un folio que no es suyo
-    if (ROLES_TECNICO.includes(usuario.rol) && ticket.idtecnico !== usuario.idUsuarioApp) {
+    if (ROLES_TECNICO.has(usuario.rol) && ticket.idtecnico !== usuario.idUsuarioApp) {
       throw new ForbiddenException('No tienes acceso a este folio');
     }
 
@@ -481,7 +481,7 @@ export class TicketsService {
     const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
     const evidencias = await this.subirArchivos(files, `Reparaciones/${numeroeconomico}/${idticket}`);
 
-    const ahora = new Date();
+    const ahora = new Date()
 
     return this.prisma.$transaction(async (tx) => {
       const ticketActualizado = await tx.bin_ticket.update({
@@ -495,11 +495,16 @@ export class TicketsService {
 
       const idDetalle = dto.idDetalle || randomUUID();
 
+        const fechaHoraUtc = new Date(dto.fechaHora || ahora); 
+      // hora y fecha: la hora de PARED en Sonora — Sonora es fija UTC-7, sin horario de verano
+      const OFFSET_SONORA_MS = 7 * 60 * 60 * 1000;
+      const fechaHoraSonora = new Date(fechaHoraUtc.getTime() - OFFSET_SONORA_MS);
+
       await tx.bin_ticket_detail.create({
         data: {
           idDetalle,
           idTicket: idticket,
-          fechaHora: ahora,
+          fechaHora: fechaHoraSonora ,
           folio: ticket.folio,
           idAutobus: ticket.idautobus,
           numeroeconomico: ticket.numeroeconomico,
@@ -514,7 +519,7 @@ export class TicketsService {
           Reparacion: dto.reparacion,
           comentarios: dto.comentarios,
           imagen1:evidencias, // String[] — pruebas de reparación subidas por el técnico
-          fechaResolucion: ahora,
+          fechaResolucion: fechaHoraSonora,
           creadoPor: usuario,
           fechaCreacion: ahora,
           idEstado: ESTADO_VALIDACION_ID,
