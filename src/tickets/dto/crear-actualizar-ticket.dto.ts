@@ -195,7 +195,13 @@ export class CrearTicketDto {
   @IsString()
   idempresa?: string;
 
+  @IsOptional()
+  @IsString()
+  asunto_correo?: string;
 
+  @IsOptional()
+  @IsString()
+  favoritos?: string;
 
 
 }
@@ -220,4 +226,6 @@ export class CrearFolioMantenimientoDto {
 
   @IsString()
   comentarios!: string; // aquí sí es obligatorio: qué mantenimiento se va a hacer
+
+  
 }

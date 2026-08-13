@@ -3,6 +3,12 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ListarTicketsQueryDto {
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  buscar?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -27,6 +33,36 @@ export class ListarTicketsQueryDto {
   @IsOptional()
   @IsString()
   idprioridad?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  idcategoria?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  iddispositivoT?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  iddispositivo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  idfalla?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  asunto_correo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  favoritos?: string;
 
   // --- Flags de negocio, reemplazan a los endpoints dedicados ---
 

@@ -44,6 +44,8 @@ export class TicketsService {
     cat_dispositivo: true,
     cat_ruta: true,
     cat_empresa: true,
+    //solicitud_refaccion: {include: { cat_tecnicos: true, cat_dispositivo_t: true }},
+    bin_ticket_detail: {include: { cat_falla: true, cat_diagnostico:true,cat_autobus:true,cat_categoria:true,cat_estado_r:true ,cat_dispositivo: true, cat_dispositivo_t: true, cat_prioridad: true, solicitud_refaccion: {include: { cat_tecnicos: true, cat_dispositivo_t: true }}}},
   };
 
   // ─────────────────────────────────────────────────────────────────────
@@ -60,8 +62,9 @@ export class TicketsService {
    * `usuario` se usa para forzar idtecnico si el rol es técnico — el query nunca
    * puede sobreescribir esto, por eso se aplica AL FINAL.
    */
-  async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
-    const { page = 1, limit = 20, isMantenimiento, isAbierto, isActivo, ...filtros } = query;
+async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
+    // 👇 1. Agregamos 'buscar' a la desestructuración
+    const { page = 1, limit = 20, isMantenimiento, isAbierto, isActivo, buscar, ...filtros } = query;
 
     const where: Prisma.bin_ticketWhereInput = {
       ...(filtros.idestado && { idestado: filtros.idestado }),
@@ -69,6 +72,12 @@ export class TicketsService {
       ...(filtros.idruta && { idruta: filtros.idruta }),
       ...(filtros.idtecnico && { idtecnico: filtros.idtecnico }),
       ...(filtros.idprioridad && { idprioridad: filtros.idprioridad }),
+      ...(filtros.idcategoria && { idcategoria: filtros.idcategoria }),
+      ...(filtros.iddispositivoT && { iddispositivot: filtros.iddispositivoT }),
+      ...(filtros.iddispositivo && { iddispositivo: filtros.iddispositivo }),
+      ...(filtros.idfalla && { idfalla: filtros.idfalla }),
+      ...(filtros.asunto_correo && { asunto_correo: { contains: filtros.asunto_correo, mode: 'insensitive' } }),
+      ...(filtros.favoritos && { favoritos: filtros.favoritos }),
     };
 
     // Flags de negocio (reemplazan a los endpoints dedicados)
@@ -86,12 +95,21 @@ export class TicketsService {
       where.idestado = { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] };
     }
 
-    // ── Seguridad: un técnico NUNCA puede ver tickets de otro técnico ──
-    // Se aplica después de lo anterior para que no pueda ser
-    // sobreescrito por ningún combo de query params.
-    if (ROLES_TECNICO.has(usuario.rol)) {
-      where.idtecnico = usuario.idUsuarioApp;
+    // 👇 2. AQUÍ AGREGAMOS LA LÓGICA DE BÚSQUEDA
+    if (buscar) {
+      where.OR = [
+        { folio: { contains: buscar, mode: 'insensitive' } },
+        { comentarios: { contains: buscar, mode: 'insensitive' } },
+        { numeroeconomico: { contains: buscar, mode: 'insensitive' } },
+        // Opcional: Si quieres buscar por nombre de operador, lo agregas aquí
+        // { nombreoperador: { contains: buscar, mode: 'insensitive' } }, 
+      ];
     }
+
+    // // ── Seguridad: un técnico NUNCA puede ver tickets de otro técnico ──
+    // if (ROLES_TECNICO.has(usuario.rol)) {
+    //   where.idtecnico = usuario.idUsuarioApp;
+    // }
 
     const [tickets, total] = await this.prisma.$transaction([
       this.prisma.bin_ticket.findMany({
@@ -413,16 +431,7 @@ export class TicketsService {
   async obtenerPorId(idticket: string, usuario: UsuarioActual) {
     const ticket = await this.prisma.bin_ticket.findUnique({
       where: { idticket },
-      include: {
-        cat_falla: true,
-        cat_autobus: true,
-        cat_categoria: true,
-        cat_prioridad: true,
-        estado: true,
-        cat_tecnicos: true,
-        cat_dispositivo_t: true,
-        solicitud_refaccion: true,
-      },
+      include: this.TICKET_INCLUDES
     });
 
     if (!ticket) throw new NotFoundException('Ticket no encontrado');
