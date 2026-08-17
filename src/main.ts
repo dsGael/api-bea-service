@@ -12,12 +12,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
   // 1. Configuración base de tu Swagger
   const config = new DocumentBuilder()
     .setTitle('API Sistema BEA')
     .setDescription('Documentación de los endpoints de Catálogos, Envíos y Operaciones')
     .setVersion('1.0')
-    .addBearerAuth() // Obligatorio para que aparezca el botón de inyectar tu JWT
+    .addBearerAuth() 
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -27,7 +28,6 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
-  
 
   await app.listen(3000);
 }

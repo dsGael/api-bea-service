@@ -15,9 +15,10 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { OperacionesModule } from './operaciones/operaciones.module';
 import { LaboratorioModule } from './laboratorio/laboratorio.module';
 import { StorageModule } from './storage/storage.module';
+import { CampanaModule } from './campana/campana.module';
 
 @Module({
-  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule, UsuariosModule, OperacionesModule, LaboratorioModule, StorageModule],
+  imports: [CatalogosModule, TicketsModule, RefaccionesModule, AlmacenModule, ChecadorModule, EnviosModule, GastosModule, NominaModule, AuthModule, PrismaModule, UsuariosModule, OperacionesModule, LaboratorioModule, StorageModule, CampanaModule],
   controllers: [AppController],
   providers: [AppService],
 })
