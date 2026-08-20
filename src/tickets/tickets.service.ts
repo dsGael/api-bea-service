@@ -39,12 +39,11 @@ export class TicketsService {
     cat_autobus: true,
     cat_prioridad: true,
     estado: true,
-    cat_tecnicos: true,
+    cat_tecnicos: {include: { cat_empleados:true } },
     cat_dispositivo_t: true,
     cat_dispositivo: true,
     cat_ruta: true,
     cat_empresa: true,
-    //solicitud_refaccion: {include: { cat_tecnicos: true, cat_dispositivo_t: true }},
     bin_ticket_detail: {include: { cat_falla: true, cat_diagnostico:true,cat_autobus:true,cat_categoria:true,cat_estado_r:true ,cat_dispositivo: true, cat_dispositivo_t: true, cat_prioridad: true, solicitud_refaccion: {include: { cat_tecnicos: true, cat_dispositivo_t: true }}}},
   };
 
@@ -58,9 +57,9 @@ export class TicketsService {
   /**
    * Único punto de entrada para listados. Construye el `where` dinámicamente
    * a partir de filtros literales + flags de negocio (isMantenimiento, isAbierto, isActivo).
-   *
-   * `usuario` se usa para forzar idtecnico si el rol es técnico — el query nunca
+   *usuario` se usa para forzar idtecnico si el rol es técnico — el query nunca
    * puede sobreescribir esto, por eso se aplica AL FINAL.
+   * `
    */
 async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
     // 👇 1. Agregamos 'buscar' a la desestructuración
@@ -95,12 +94,14 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
       where.idestado = { notIn: [ESTADO_FINALIZADO_ID, ESTADO_CANCELADO_ID] };
     }
 
-    // 👇 2. AQUÍ AGREGAMOS LA LÓGICA DE BÚSQUEDA
+    //  2. AQUÍ AGREGAMOS LA LÓGICA DE BÚSQUEDA
     if (buscar) {
       where.OR = [
         { folio: { contains: buscar, mode: 'insensitive' } },
         { comentarios: { contains: buscar, mode: 'insensitive' } },
         { numeroeconomico: { contains: buscar, mode: 'insensitive' } },
+        {tiporeparacion: {contains: buscar, mode:'insensitive'}}
+        
         // Opcional: Si quieres buscar por nombre de operador, lo agregas aquí
         // { nombreoperador: { contains: buscar, mode: 'insensitive' } }, 
       ];
