@@ -71,7 +71,9 @@ model bin_ticket {
   num_folio                Int?
   favoritos                String?              @db.VarChar
   asunto_correo            String?              @db.VarChar
+  idCampa_a                String?              @map("idCampaña") @db.VarChar(255)
   cat_empresa              cat_empresa?         @relation(fields: [idempresa], references: [idEmpresa], onDelete: NoAction, onUpdate: NoAction, map: "bin_ticket_cat_empresa_fk")
+  campa_a                  campa_a?             @relation(fields: [idCampa_a], references: [idRegistroCampa_a], onUpdate: NoAction, map: "fk_bin_ticket_campaña")
   cat_autobus              cat_autobus?         @relation(fields: [idautobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_autobus")
   cat_categoria            cat_categoria?       @relation(fields: [idcategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_categoria")
   cat_dispositivo          cat_dispositivo?     @relation(fields: [iddispositivo], references: [idDispositivo], onDelete: NoAction, onUpdate: NoAction, map: "fk_ticket_dispositivo")
@@ -138,20 +140,35 @@ model buscar_conductor {
 }
 
 model campa_a {
-  idRegistroCampa_a String            @id @map("idRegistroCampaña") @db.VarChar(50)
-  fechaHora         DateTime?         @db.Timestamp(6)
-  idAutobus         String?           @db.VarChar(50)
-  idRuta            String?           @db.VarChar(50)
-  numeroEconomico   String?           @db.VarChar(50)
-  reparacion        String?           @db.VarChar(50)
-  idFalla           String?           @db.VarChar(50)
-  idTecnico         String?           @db.VarChar(50)
-  idEstado          String?           @db.VarChar(50)
-  cat_autobus       cat_autobus?      @relation(fields: [idAutobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_autobus")
-  cat_estado_r      cat_estado_r?     @relation(fields: [idEstado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_estado_r")
-  cat_falla         cat_falla?        @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_falla")
-  cat_ruta          cat_ruta?         @relation(fields: [idRuta], references: [idRuta], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_ruta")
-  cat_tecnicos      cat_usuarios_app? @relation(fields: [idTecnico], references: [idUsuarioApp], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_tecnico")
+  idRegistroCampa_a String             @id @map("idRegistroCampaña") @db.VarChar(50)
+  fechaHora         DateTime?          @db.Timestamp(6)
+  idAutobus         String?
+  idRuta            String?            @db.VarChar(50)
+  numeroEconomico   String?            @db.VarChar(50)
+  reparacion        String?            @db.VarChar(50)
+  idFalla           String?            @db.VarChar(50)
+  idTecnico         String?            @db.VarChar(50)
+  idEstado          String?            @db.VarChar(50)
+  idreporta         String?            @db.VarChar
+  idempresa         String?            @db.VarChar
+  iddispositivo     String?            @db.VarChar
+  imagenfalla1      String?            @db.VarChar
+  idprioridad       String?            @db.VarChar
+  idcategoria       String?            @db.VarChar
+  descripcion       String?            @db.VarChar
+  nombre            String?            @db.VarChar
+  esCampa_a         Boolean?           @map("esCampaña")
+  bin_ticket        bin_ticket[]
+  cat_autobus       cat_autobus?       @relation(fields: [idAutobus], references: [idAutobus], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_autobus")
+  cat_estado_r      cat_estado_r?      @relation(fields: [idEstado], references: [idEstadoR], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_estado_r")
+  cat_falla         cat_falla?         @relation(fields: [idFalla], references: [idFalla], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_falla")
+  cat_ruta          cat_ruta?          @relation(fields: [idRuta], references: [idRuta], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_ruta")
+  cat_tecnicos      cat_usuarios_app?  @relation(fields: [idTecnico], references: [idUsuarioApp], onDelete: NoAction, onUpdate: NoAction, map: "fk_campana_tecnico")
+  cat_categoria     cat_categoria?     @relation(fields: [idcategoria], references: [idCategoria], onDelete: NoAction, onUpdate: NoAction, map: "fk_campaña_categoria")
+  cat_dispositivo_t cat_dispositivo_t? @relation(fields: [iddispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "fk_campaña_dispositivo_t")
+  cat_empresa       cat_empresa?       @relation(fields: [idempresa], references: [idEmpresa], onDelete: NoAction, onUpdate: NoAction, map: "fk_campaña_empresa")
+  cat_prioridad     cat_prioridad?     @relation(fields: [idprioridad], references: [idPrioridad], onDelete: NoAction, onUpdate: NoAction, map: "fk_campaña_prioridad")
+  cat_reporta       cat_reporta?       @relation(fields: [idreporta], references: [idReporta], onDelete: NoAction, onUpdate: NoAction, map: "fk_campaña_reporta")
 
   @@map("campaña")
 }
@@ -216,6 +233,7 @@ model cat_categoria {
   fechaModificacion String?             @db.VarChar(50)
   bin_ticket        bin_ticket[]
   bin_ticket_detail bin_ticket_detail[]
+  campa_a           campa_a[]
 }
 
 model cat_celular {
@@ -309,6 +327,7 @@ model cat_dispositivo_t {
   requiereSerie       Boolean?
   bin_ticket          bin_ticket[]
   bin_ticket_detail   bin_ticket_detail[]
+  campa_a             campa_a[]
   cat_diagnostico     cat_diagnostico[]
   cat_dispositivo     cat_dispositivo[]
   lab_reparacion      lab_reparacion[]
@@ -328,6 +347,7 @@ model cat_empresa {
   fechaModificacion DateTime?       @db.Timestamp(6)
   acronimo          String?         @db.VarChar(20)
   bin_ticket        bin_ticket[]
+  campa_a           campa_a[]
   cat_autobus       cat_autobus[]
   cat_empleados     cat_empleados[]
   cat_reporta       cat_reporta[]
@@ -405,6 +425,7 @@ model cat_prioridad {
   fechaModificacion DateTime?           @db.Timestamp(6)
   bin_ticket        bin_ticket[]
   bin_ticket_detail bin_ticket_detail[]
+  campa_a           campa_a[]
 }
 
 model cat_reporta {
@@ -419,6 +440,7 @@ model cat_reporta {
   modificadoPor     String?      @db.VarChar(50)
   fechaModificacion DateTime?    @db.Timestamp(6)
   bin_ticket        bin_ticket[]
+  campa_a           campa_a[]
   cat_empresa       cat_empresa? @relation(fields: [idEmpresa], references: [idEmpresa], onDelete: NoAction, onUpdate: NoAction, map: "cat_reporta_cat_empresa_fk")
 }
 
