@@ -25,270 +25,547 @@ export class CatalogosService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ============================================================================
+  // DEFINICIÓN DE RELACIONES (INCLUDES COMUNES)
+  // ============================================================================
+
+  private readonly includeAutobus = {
+    cat_empresa: { select: { idEmpresa: true, nombre: true, acronimo: true } },
+    cat_carroceria: { select: { idCarroceria: true, nombre: true, marca: true } },
+    cat_estado_a: { select: { idEstadoA: true, nombre: true, descripcion: true } },
+    cat_ruta: { select: { idRuta: true, nombre: true } },
+  };
+
+  private readonly includeDiagnostico = {
+    cat_dispositivo_t: { select: { idDispositivoT: true, nombre: true, tipo: true } },
+    cat_falla: { select: { idFalla: true, nombre: true, falla: true } },
+  };
+
+  private readonly includeDispositivo = {
+    cat_dispositivo_t: { select: { idDispositivoT: true, nombre: true, tipo: true } },
+  };
+
+  private readonly includeReporta = {
+    cat_empresa: { select: { idEmpresa: true, nombre: true, acronimo: true } },
+  };
+
+  // ============================================================================
   // SECCIÓN 1: CATÁLOGOS CON CRUD COMPLETO
   // ============================================================================
 
   // --- AUTOBUSES ---
-  async listarAutobuses() { return this.prisma.cat_autobus.findMany({ orderBy: { numeroEconomico: 'asc' } }); }
-  async obtenerAutobus(id: string) { return this.prisma.cat_autobus.findUnique({ where: { idAutobus: id } }); }
-  async crearAutobus(dto: CrearAutobusDto, usuario: string) {
-    return this.prisma.cat_autobus.create({ 
-      data: { idAutobus: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date().toISOString() } 
+  async listarAutobuses() {
+    return this.prisma.cat_autobus.findMany({
+      include: this.includeAutobus,
+      orderBy: { numeroEconomico: 'asc' },
     });
   }
+
+  async obtenerAutobus(id: string) {
+    return this.prisma.cat_autobus.findUnique({
+      where: { idAutobus: id },
+      include: this.includeAutobus,
+    });
+  }
+
+  async crearAutobus(dto: CrearAutobusDto, usuario: string) {
+    return this.prisma.cat_autobus.create({
+      data: {
+        idAutobus: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date().toISOString(),
+      },
+      include: this.includeAutobus,
+    });
+  }
+
   async actualizarAutobus(id: string, dto: ActualizarAutobusDto) {
-    return this.prisma.cat_autobus.update({ 
-      where: { idAutobus: id }, 
-      data: { ...dto,   } 
+    return this.prisma.cat_autobus.update({
+      where: { idAutobus: id },
+      data: { ...dto },
+      include: this.includeAutobus,
     });
   }
 
   // --- CARROCERÍAS ---
-  async listarCarrocerias() { return this.prisma.cat_carroceria.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerCarroceria(id: string) { return this.prisma.cat_carroceria.findUnique({ where: { idCarroceria: id } }); }
+  async listarCarrocerias() {
+    return this.prisma.cat_carroceria.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerCarroceria(id: string) {
+    return this.prisma.cat_carroceria.findUnique({ where: { idCarroceria: id } });
+  }
+
   async crearCarroceria(dto: CrearCarroceriaDto, usuario: string) {
-    return this.prisma.cat_carroceria.create({ 
-      data: { idCarroceria: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    return this.prisma.cat_carroceria.create({
+      data: {
+        idCarroceria: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
+
   async actualizarCarroceria(id: string, dto: ActualizarCarroceriaDto) {
-    return this.prisma.cat_carroceria.update({ 
-      where: { idCarroceria: id }, 
-      data: { ...dto,   } 
+    return this.prisma.cat_carroceria.update({
+      where: { idCarroceria: id },
+      data: { ...dto },
     });
   }
 
   // --- CELULARES ---
-  async listarCelulares() { return this.prisma.cat_celular.findMany({ orderBy: { noEconomico: 'asc' } }); }
-  async obtenerCelular(id: string) { return this.prisma.cat_celular.findUnique({ where: { idCelular: id } }); }
-  async crearCelular(dto: CrearCelularDto) {
-    return this.prisma.cat_celular.create({ data: { idCelular: randomUUID(), ...dto } });
+  async listarCelulares() {
+    return this.prisma.cat_celular.findMany({ orderBy: { noEconomico: 'asc' } });
   }
+
+  async obtenerCelular(id: string) {
+    return this.prisma.cat_celular.findUnique({ where: { idCelular: id } });
+  }
+
+  async crearCelular(dto: CrearCelularDto) {
+    return this.prisma.cat_celular.create({
+      data: { idCelular: randomUUID(), ...dto },
+    });
+  }
+
   async actualizarCelular(id: string, dto: ActualizarCelularDto) {
-    return this.prisma.cat_celular.update({ where: { idCelular: id }, data: { ...dto } });
+    return this.prisma.cat_celular.update({
+      where: { idCelular: id },
+      data: { ...dto },
+    });
   }
 
   // --- CIUDADES ---
-  async listarCiudades() { return this.prisma.cat_ciudad.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerCiudad(id: string) { return this.prisma.cat_ciudad.findUnique({ where: { idCiudad: id } }); }
-  async crearCiudad(dto: CrearCiudadDto, usuario: string) {
-    return this.prisma.cat_ciudad.create({ 
-      data: { idCiudad: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
-    });
+  async listarCiudades() {
+    return this.prisma.cat_ciudad.findMany({ orderBy: { nombre: 'asc' } });
   }
-  async actualizarCiudad(id: string, dto: ActualizarCiudadDto) {
-    return this.prisma.cat_ciudad.update({ 
-      where: { idCiudad: id }, 
-      data: { ...dto,   } 
+
+  async obtenerCiudad(id: string) {
+    return this.prisma.cat_ciudad.findUnique({ where: { idCiudad: id } });
+  }
+
+  async crearCiudad(dto: CrearCiudadDto, usuario: string) {
+    return this.prisma.cat_ciudad.create({
+      data: {
+        idCiudad: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
 
-  // -- HORARIOS ---
-  async listarHorarios() { return this.prisma.cat_horarios.findMany({ orderBy: { horaEntrada: 'asc' } }); }
-  async obtenerHorario(id: string) { return this.prisma.cat_horarios.findUnique({ where: { idHorario: id } }); }
-  async crearHorario(dto:CrearHorarioDto, usuario: string) {
-    return this.prisma.cat_horarios.create({ 
-      data: { idHorario: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+  async actualizarCiudad(id: string, dto: ActualizarCiudadDto) {
+    return this.prisma.cat_ciudad.update({
+      where: { idCiudad: id },
+      data: { ...dto },
     });
   }
+
+  // --- HORARIOS ---
+  async listarHorarios() {
+    return this.prisma.cat_horarios.findMany({ orderBy: { horaEntrada: 'asc' } });
+  }
+
+  async obtenerHorario(id: string) {
+    return this.prisma.cat_horarios.findUnique({ where: { idHorario: id } });
+  }
+
+  async crearHorario(dto: CrearHorarioDto, usuario: string) {
+    return this.prisma.cat_horarios.create({
+      data: {
+        idHorario: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
+    });
+  }
+
   async actualizarHorario(id: string, dto: ActualizarHorarioDto) {
-    return this.prisma.cat_horarios.update({ 
-      where: { idHorario: id }, 
-      data: { ...dto } 
+    return this.prisma.cat_horarios.update({
+      where: { idHorario: id },
+      data: { ...dto },
     });
   }
 
   // --- DEPARTAMENTOS ---
-  async listarDepartamentos() { return this.prisma.cat_departamentos.findMany({ orderBy: { Departamento: 'asc' } }); }
-  async obtenerDepartamento(id: string) { return this.prisma.cat_departamentos.findUnique({ where: { idDepartamento: id } }); }
-  async crearDepartamento(dto: CrearDepartamentoDto) {
-    return this.prisma.cat_departamentos.create({ data: { idDepartamento: randomUUID(), ...dto } });
+  async listarDepartamentos() {
+    return this.prisma.cat_departamentos.findMany({ orderBy: { Departamento: 'asc' } });
   }
+
+  async obtenerDepartamento(id: string) {
+    return this.prisma.cat_departamentos.findUnique({ where: { idDepartamento: id } });
+  }
+
+  async crearDepartamento(dto: CrearDepartamentoDto) {
+    return this.prisma.cat_departamentos.create({
+      data: { idDepartamento: randomUUID(), ...dto },
+    });
+  }
+
   async actualizarDepartamento(id: string, dto: ActualizarDepartamentoDto) {
-    return this.prisma.cat_departamentos.update({ where: { idDepartamento: id }, data: { ...dto } });
+    return this.prisma.cat_departamentos.update({
+      where: { idDepartamento: id },
+      data: { ...dto },
+    });
   }
 
   // --- DIAGNÓSTICOS ---
-  async listarDiagnosticos() { return this.prisma.cat_diagnostico.findMany({ orderBy: { fallaNombre: 'asc' } }); }
-  async obtenerDiagnostico(id: string) { return this.prisma.cat_diagnostico.findUnique({ where: { idDiagnostico: id } }); }
-  async crearDiagnostico(dto: CrearDiagnosticoDto, usuario: string) {
-    return this.prisma.cat_diagnostico.create({ 
-      data: { idDiagnostico: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+  async listarDiagnosticos() {
+    return this.prisma.cat_diagnostico.findMany({
+      include: this.includeDiagnostico,
+      orderBy: { fallaNombre: 'asc' },
     });
   }
+
+  async obtenerDiagnostico(id: string) {
+    return this.prisma.cat_diagnostico.findUnique({
+      where: { idDiagnostico: id },
+      include: this.includeDiagnostico,
+    });
+  }
+
+  async crearDiagnostico(dto: CrearDiagnosticoDto, usuario: string) {
+    return this.prisma.cat_diagnostico.create({
+      data: {
+        idDiagnostico: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
+      include: this.includeDiagnostico,
+    });
+  }
+
   async actualizarDiagnostico(id: string, dto: ActualizarDiagnosticoDto) {
-    return this.prisma.cat_diagnostico.update({ 
-      where: { idDiagnostico: id }, 
-      data: { ...dto,   } 
+    return this.prisma.cat_diagnostico.update({
+      where: { idDiagnostico: id },
+      data: { ...dto },
+      include: this.includeDiagnostico,
     });
   }
 
   // --- DISPOSITIVOS ---
-  async listarDispositivos() { return this.prisma.cat_dispositivo.findMany({ orderBy: { numeroSerie: 'asc' } }); }
-  async obtenerDispositivo(id: string) { return this.prisma.cat_dispositivo.findUnique({ where: { idDispositivo: id } }); }
-  async crearDispositivo(dto: CrearDispositivoDto, usuario: string) {
-    return this.prisma.cat_dispositivo.create({ 
-      data: { idDispositivo: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+  async listarDispositivos() {
+    return this.prisma.cat_dispositivo.findMany({
+      include: this.includeDispositivo,
+      orderBy: { numeroSerie: 'asc' },
     });
   }
-  async actualizarDispositivo(id: string, dto: ActualizarDispositivoDto, ) {
-    return this.prisma.cat_dispositivo.update({ 
-      where: { idDispositivo: id }, 
-      data: { ...dto,    } 
+
+  async obtenerDispositivo(id: string) {
+    return this.prisma.cat_dispositivo.findUnique({
+      where: { idDispositivo: id },
+      include: this.includeDispositivo,
+    });
+  }
+
+  async crearDispositivo(dto: CrearDispositivoDto, usuario: string) {
+    return this.prisma.cat_dispositivo.create({
+      data: {
+        idDispositivo: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
+      include: this.includeDispositivo,
+    });
+  }
+
+  async actualizarDispositivo(id: string, dto: ActualizarDispositivoDto) {
+    return this.prisma.cat_dispositivo.update({
+      where: { idDispositivo: id },
+      data: { ...dto },
+      include: this.includeDispositivo,
     });
   }
 
   // --- TIPOS DE DISPOSITIVO ---
-  async listarTiposDispositivos() { return this.prisma.cat_dispositivo_t.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerTipoDispositivo(id: string) { return this.prisma.cat_dispositivo_t.findUnique({ where: { idDispositivoT: id } }); }
+  async listarTiposDispositivos() {
+    return this.prisma.cat_dispositivo_t.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerTipoDispositivo(id: string) {
+    return this.prisma.cat_dispositivo_t.findUnique({ where: { idDispositivoT: id } });
+  }
+
   async crearTipoDispositivo(dto: CrearTipoDispositivoDto, usuario: string) {
-    return this.prisma.cat_dispositivo_t.create({ 
-      data: { idDispositivoT: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    return this.prisma.cat_dispositivo_t.create({
+      data: {
+        idDispositivoT: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
+
   async actualizarTipoDispositivo(id: string, dto: ActualizarTipoDispositivoDto) {
-    return this.prisma.cat_dispositivo_t.update({ 
-      where: { idDispositivoT: id }, 
-      data: { ...dto,   } 
+    return this.prisma.cat_dispositivo_t.update({
+      where: { idDispositivoT: id },
+      data: { ...dto },
     });
   }
 
   // --- EMPRESAS ---
-  async listarEmpresas() { return this.prisma.cat_empresa.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerEmpresa(id: string) { return this.prisma.cat_empresa.findUnique({ where: { idEmpresa: id } }); }
+  async listarEmpresas() {
+    return this.prisma.cat_empresa.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerEmpresa(id: string) {
+    return this.prisma.cat_empresa.findUnique({ where: { idEmpresa: id } });
+  }
+
   async crearEmpresa(dto: CrearEmpresaDto, usuario: string) {
-    return this.prisma.cat_empresa.create({ 
-      data: { idEmpresa: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    return this.prisma.cat_empresa.create({
+      data: {
+        idEmpresa: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
+
   async actualizarEmpresa(id: string, dto: ActualizarEmpresaDto) {
-    return this.prisma.cat_empresa.update({ 
-      where: { idEmpresa: id }, 
-      data: { ...dto,    } 
+    return this.prisma.cat_empresa.update({
+      where: { idEmpresa: id },
+      data: { ...dto },
     });
   }
 
   // --- FALLAS ---
-  async listarFallas() { return this.prisma.cat_falla.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerFalla(id: string) { return this.prisma.cat_falla.findUnique({ where: { idFalla: id } }); }
+  async listarFallas() {
+    return this.prisma.cat_falla.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerFalla(id: string) {
+    return this.prisma.cat_falla.findUnique({ where: { idFalla: id } });
+  }
+
   async crearFalla(dto: CrearFallaDto, usuario: string) {
-    return this.prisma.cat_falla.create({ 
-      data: { idFalla: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    return this.prisma.cat_falla.create({
+      data: {
+        idFalla: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
+
   async actualizarFalla(id: string, dto: ActualizarFallaDto) {
-    return this.prisma.cat_falla.update({ 
-      where: { idFalla: id }, 
-      data: { ...dto,    } 
+    return this.prisma.cat_falla.update({
+      where: { idFalla: id },
+      data: { ...dto },
     });
   }
 
   // --- REPORTA ---
-  async listarReporta() { return this.prisma.cat_reporta.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerReporta(id: string) { return this.prisma.cat_reporta.findUnique({ where: { idReporta: id } }); }
-  async crearReporta(dto: CrearReportaDto, usuario: string) {
-    return this.prisma.cat_reporta.create({ 
-      data: { idReporta: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date().toISOString() } 
+  async listarReporta() {
+    return this.prisma.cat_reporta.findMany({
+      include: this.includeReporta,
+      orderBy: { nombre: 'asc' },
     });
   }
+
+  async obtenerReporta(id: string) {
+    return this.prisma.cat_reporta.findUnique({
+      where: { idReporta: id },
+      include: this.includeReporta,
+    });
+  }
+
+  async crearReporta(dto: CrearReportaDto, usuario: string) {
+    return this.prisma.cat_reporta.create({
+      data: {
+        idReporta: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date().toISOString(),
+      },
+      include: this.includeReporta,
+    });
+  }
+
   async actualizarReporta(id: string, dto: ActualizarReportaDto) {
-    return this.prisma.cat_reporta.update({ 
-      where: { idReporta: id }, 
-      data: { ...dto,    } 
+    return this.prisma.cat_reporta.update({
+      where: { idReporta: id },
+      data: { ...dto },
+      include: this.includeReporta,
     });
   }
 
   // --- RUTAS ---
-  async listarRutas() { return this.prisma.cat_ruta.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerRuta(id: string) { return this.prisma.cat_ruta.findUnique({ where: { idRuta: id } }); }
+  async listarRutas() {
+    return this.prisma.cat_ruta.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerRuta(id: string) {
+    return this.prisma.cat_ruta.findUnique({ where: { idRuta: id } });
+  }
+
   async crearRuta(dto: CrearRutaDto, usuario: string) {
-    return this.prisma.cat_ruta.create({ 
-      data: { idRuta: randomUUID(), ...dto, creadoPor: usuario, fechaCreacion: new Date() } 
+    return this.prisma.cat_ruta.create({
+      data: {
+        idRuta: randomUUID(),
+        ...dto,
+        creadoPor: usuario,
+        fechaCreacion: new Date(),
+      },
     });
   }
+
   async actualizarRuta(id: string, dto: ActualizarRutaDto) {
-    return this.prisma.cat_ruta.update({ 
-      where: { idRuta: id }, 
-      data: { ...dto,    } 
+    return this.prisma.cat_ruta.update({
+      where: { idRuta: id },
+      data: { ...dto },
     });
   }
 
   // --- SIMS DVR ---
-  async listarSimsDvr() { return this.prisma.cat_sims_dvr.findMany({ orderBy: { SIM: 'asc' } }); }
-  async obtenerSimDvr(id: string) { return this.prisma.cat_sims_dvr.findUnique({ where: { idSimDvr: id } }); }
-  async crearSimDvr(dto: CrearSimsDvrDto) {
-    return this.prisma.cat_sims_dvr.create({ data: { idSimDvr: randomUUID(), ...dto } });
+  async listarSimsDvr() {
+    return this.prisma.cat_sims_dvr.findMany({ orderBy: { SIM: 'asc' } });
   }
+
+  async obtenerSimDvr(id: string) {
+    return this.prisma.cat_sims_dvr.findUnique({ where: { idSimDvr: id } });
+  }
+
+  async crearSimDvr(dto: CrearSimsDvrDto) {
+    return this.prisma.cat_sims_dvr.create({
+      data: { idSimDvr: randomUUID(), ...dto },
+    });
+  }
+
   async actualizarSimDvr(id: string, dto: ActualizarSimsDvrDto) {
-    return this.prisma.cat_sims_dvr.update({ where: { idSimDvr: id }, data: { ...dto } });
+    return this.prisma.cat_sims_dvr.update({
+      where: { idSimDvr: id },
+      data: { ...dto },
+    });
   }
 
   // --- SUELDOS ---
-  async listarSueldos() { return this.prisma.cat_sueldos.findMany({ orderBy: { Puesto: 'asc' } }); }
-  async obtenerSueldo(id: string) { return this.prisma.cat_sueldos.findUnique({ where: { idSueldo: id } }); }
-  async crearSueldo(dto: CrearSueldoDto) {
-    return this.prisma.cat_sueldos.create({ data: { idSueldo: randomUUID(), ...dto } });
-  }
-  async actualizarSueldo(id: string, dto: ActualizarSueldoDto) {
-    return this.prisma.cat_sueldos.update({ where: { idSueldo: id }, data: { ...dto } });
+  async listarSueldos() {
+    return this.prisma.cat_sueldos.findMany({ orderBy: { Puesto: 'asc' } });
   }
 
+  async obtenerSueldo(id: string) {
+    return this.prisma.cat_sueldos.findUnique({ where: { idSueldo: id } });
+  }
+
+  async crearSueldo(dto: CrearSueldoDto) {
+    return this.prisma.cat_sueldos.create({
+      data: { idSueldo: randomUUID(), ...dto },
+    });
+  }
+
+  async actualizarSueldo(id: string, dto: ActualizarSueldoDto) {
+    return this.prisma.cat_sueldos.update({
+      where: { idSueldo: id },
+      data: { ...dto },
+    });
+  }
 
   // ============================================================================
   // SECCIÓN 2: CATÁLOGOS DE SOLO LECTURA (Listar todos, Leer 1)
   // ============================================================================
 
   // --- CATEGORÍAS ---
-  async listarCategorias() { return this.prisma.cat_categoria.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerCategoria(id: string) { return this.prisma.cat_categoria.findUnique({ where: { idCategoria: id } }); }
+  async listarCategorias() {
+    return this.prisma.cat_categoria.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerCategoria(id: string) {
+    return this.prisma.cat_categoria.findUnique({ where: { idCategoria: id } });
+  }
 
   // --- ESTADOS GLOBALES ---
-  async listarEstados() { return this.prisma.cat_estado.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerEstado(id: string) { return this.prisma.cat_estado.findUnique({ where: { idEstado: id } }); }
+  async listarEstados() {
+    return this.prisma.cat_estado.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerEstado(id: string) {
+    return this.prisma.cat_estado.findUnique({ where: { idEstado: id } });
+  }
 
   // --- ESTADOS DE AUTOBÚS ---
-  async listarEstadosAutobus() { return this.prisma.cat_estado_a.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerEstadoAutobus(id: string) { return this.prisma.cat_estado_a.findUnique({ where: { idEstadoA: id } }); }
+  async listarEstadosAutobus() {
+    return this.prisma.cat_estado_a.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerEstadoAutobus(id: string) {
+    return this.prisma.cat_estado_a.findUnique({ where: { idEstadoA: id } });
+  }
 
   // --- ESTADOS DE REPARACIÓN ---
-  async listarEstadosReparacion() { return this.prisma.cat_estado_r.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerEstadoReparacion(id: string) { return this.prisma.cat_estado_r.findUnique({ where: { idEstadoR: id } }); }
+  async listarEstadosReparacion() {
+    return this.prisma.cat_estado_r.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerEstadoReparacion(id: string) {
+    return this.prisma.cat_estado_r.findUnique({ where: { idEstadoR: id } });
+  }
 
   // --- PERFILES ---
-  async listarPerfiles() { return this.prisma.cat_perfiles.findMany({ orderBy: { perfil: 'asc' } }); }
-  async obtenerPerfil(id: string) { return this.prisma.cat_perfiles.findUnique({ where: { idPerfil: id } }); }
+  async listarPerfiles() {
+    return this.prisma.cat_perfiles.findMany({ orderBy: { perfil: 'asc' } });
+  }
+
+  async obtenerPerfil(id: string) {
+    return this.prisma.cat_perfiles.findUnique({ where: { idPerfil: id } });
+  }
 
   // --- PRIORIDADES ---
-  async listarPrioridades() { return this.prisma.cat_prioridad.findMany({ orderBy: { nombre: 'asc' } }); }
-  async obtenerPrioridad(id: string) { return this.prisma.cat_prioridad.findUnique({ where: { idPrioridad: id } }); }
+  async listarPrioridades() {
+    return this.prisma.cat_prioridad.findMany({ orderBy: { nombre: 'asc' } });
+  }
+
+  async obtenerPrioridad(id: string) {
+    return this.prisma.cat_prioridad.findUnique({ where: { idPrioridad: id } });
+  }
 
   // --- TIPOS DE REPARACIÓN ---
-  async listarTiposReparacion() { return this.prisma.cat_tipo_reparacion.findMany({ orderBy: { tipoReparacion: 'asc' } }); }
-  async obtenerTipoReparacion(id: string) { return this.prisma.cat_tipo_reparacion.findUnique({ where: { idtipoReparacion: id } }); }
+  async listarTiposReparacion() {
+    return this.prisma.cat_tipo_reparacion.findMany({ orderBy: { tipoReparacion: 'asc' } });
+  }
 
+  async obtenerTipoReparacion(id: string) {
+    return this.prisma.cat_tipo_reparacion.findUnique({ where: { idtipoReparacion: id } });
+  }
+
+  // ============================================================================
+  // CONSULTAS FILTRADAS
+  // ============================================================================
 
   async listarDiagnosticosPorFalla(idFalla: string) {
-  return this.prisma.cat_diagnostico.findMany({
-    where: { idFalla },
-    select: {
-      idDiagnostico: true,
-      diagnostico: true,
-      reparacion: true,
-      fallaNombre: true,
-      
-    },
-    orderBy: { diagnostico: 'asc' },
-  });
-}
+    return this.prisma.cat_diagnostico.findMany({
+      where: { idFalla },
+      select: {
+        idDiagnostico: true,
+        diagnostico: true,
+        reparacion: true,
+        fallaNombre: true,
+        cat_dispositivo_t: {
+          select: {
+            idDispositivoT: true,
+            nombre: true,
+          },
+        },
+      },
+      orderBy: { diagnostico: 'asc' },
+    });
+  }
 
-async listarDispositivosPorTipo(tipo: string) {
-  return this.prisma.cat_dispositivo_t.findMany({
-    where: { tipo: tipo },
-    select: {
-      idDispositivoT: true,
-      nombre: true,
-    }   
-  }) ;
-}
-
+  async listarDispositivosPorTipo(tipo: string) {
+    return this.prisma.cat_dispositivo_t.findMany({
+      where: { tipo },
+      select: {
+        idDispositivoT: true,
+        nombre: true,
+      },
+    });
+  }
 }
