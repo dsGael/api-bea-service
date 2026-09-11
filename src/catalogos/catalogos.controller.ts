@@ -376,4 +376,18 @@ export class CatalogosController {
     return this.catalogosService.listarDispositivosPorTipo(tipo);
   }
 
+
+  @Get('autobus/:id/dispositivos')
+  @ApiOperation({ summary: 'Dispositivos instalados en un autobús específico' })
+  listarDispositivosPorAutobus(@Param('id') id: string) {
+    return this.catalogosService.listarDispositivosPorAutobus(id);
+  }
+
+  @Get('falla/dispositivotipo/:tipo')
+  @ApiOperation({ summary: 'Fallas posibles para un tipo de dispositivo' })
+  listarFallasPorTipoDispositivo(@Param('tipo') tipo: string) {
+    return this.catalogosService.listarFallasPorTipoDispositivo(tipo);
+  }
+
+
 }

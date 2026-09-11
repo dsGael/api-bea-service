@@ -330,6 +330,7 @@ model cat_dispositivo_t {
   campa_a             campa_a[]
   cat_diagnostico     cat_diagnostico[]
   cat_dispositivo     cat_dispositivo[]
+  cat_falla           cat_falla[]
   lab_reparacion      lab_reparacion[]
   rel_movimiento      rel_movimiento[]
   solicitud_refaccion solicitud_refaccion[]
@@ -409,6 +410,7 @@ model cat_falla {
   bin_ticket_detail bin_ticket_detail[]
   campa_a           campa_a[]
   cat_diagnostico   cat_diagnostico[]
+  cat_dispositivo_t cat_dispositivo_t?  @relation(fields: [idDispositivo], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "cat_falla_cat_dispositivo_t_fk")
 }
 
 model cat_perfiles {

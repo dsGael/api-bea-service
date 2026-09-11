@@ -568,4 +568,22 @@ export class CatalogosService {
       },
     });
   }
+
+
+
+async listarDispositivosPorAutobus(idAutobus: string) {
+  return this.prisma.cat_dispositivo.findMany({
+    where: { idAutobus },
+    include: { cat_dispositivo_t: true },
+  });
+}
+
+async listarFallasPorTipoDispositivo(idDispositivoT: string) {
+  return this.prisma.cat_falla.findMany({
+    where: { idDispositivo: idDispositivoT }, // el campo se llama idDispositivo pero referencia cat_dispositivo_t
+  });
+}
+  
+
+  
 }
