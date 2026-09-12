@@ -8,7 +8,7 @@ import { CrearEmpleadoDto, ActualizarEmpleadoDto, CambiarPasswordDto,CambiarPerf
 import { randomUUID } from 'node:crypto';
 
 
-const PERFILES_TECNICO = ['tecnicojr', 'tecnicosinior'];
+const PERFILES_TECNICO = ['tecnicojr', 'tecnicosinior', 'mesacontrol'];
 
 function limpiarCuenta(cuenta: any) {
   if (!cuenta) return null;
