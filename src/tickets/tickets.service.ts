@@ -606,4 +606,19 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
       data: { idestado: ESTADO_CANCELADO_ID, modificadopor: usuario, fechamodificacion: new Date() },
     });
   }
+
+  // tickets.service.ts
+    async conteosPorEstado() {
+      const resultado = await this.prisma.bin_ticket.groupBy({
+        by: ['idestado'],
+        _count: { idestado: true },
+      });
+
+      // shape simple para el frontend: { [idestado]: count }
+      return resultado.reduce((acc, r) => {
+        acc[String(r.idestado)] = r._count.idestado;
+        return acc;
+      }, {} as Record<string, number>);
+    }
+
 }

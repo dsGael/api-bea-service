@@ -3,8 +3,13 @@ import { IsString, IsOptional, IsEmail, IsInt, MinLength } from 'class-validator
 
 export class CrearEmpleadoDto {
   // Credenciales/operativo (van a cat_usuarios_app)
+
+  @IsString()
+  @MinLength(4)
+  idUsuarioApp!: string; // ahora es el identificador real de login, ya no un idUsuario elegido
+
   @IsEmail()
-  useremail!: string; // ahora es el identificador real de login, ya no un idUsuario elegido
+  useremail!: string; 
 
   @IsString()
   @MinLength(4)
@@ -41,9 +46,9 @@ export class CrearEmpleadoDto {
   @IsString()
   puesto?: string;
 
-  @IsOptional()
-  @IsString()
-  idHorario?: string;
+  // @IsOptional()
+  // @IsString()
+  // idHorario?: string;
 }
 
 export class ActualizarEmpleadoDto extends PartialType(

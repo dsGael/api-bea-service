@@ -97,12 +97,21 @@ export class TicketsController {
   // DETALLE — después de las rutas literales de arriba
   // ─────────────────────────────────────────────────────────────────────
 
+
+    // tickets.controller.ts
+  @Get('conteos-por-estado')
+  conteosPorEstado() {
+    return this.ticketsService.conteosPorEstado();
+  }
+
+
   @Get(':id')
   @Roles('tecnicojr', 'tecnicosinior', 'mesacontrol', 'admin', 'superadmin', 'almacen', 'consultas')
   @ApiOperation({ summary: 'Obtiene el detalle completo de un folio' })
   obtenerPorId(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.obtenerPorId(id, { idUsuarioApp: user.idUsuarioApp, rol: user.rol });
   }
+
 
   // ─────────────────────────────────────────────────────────────────────
   // TRANSICIONES DE ESTADO
@@ -161,4 +170,6 @@ export class TicketsController {
   cancelar(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ticketsService.cancelarTicket(id, user.idUsuarioApp);
   }
+
+
 }

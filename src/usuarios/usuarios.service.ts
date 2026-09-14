@@ -31,25 +31,26 @@ export class UsuariosService {
     }));
   }
 
-  async listarTecnicos() {
-    const empleados = await this.prisma.cat_empleados.findMany({
-      where: { cat_usuarios_app: { is: { perfil: { in: PERFILES_TECNICO } } } },
-      include: { cat_usuarios_app: true },
-      orderBy: { nombre: 'asc' },
-    });
-    return empleados.map((e) => ({
-      ...e,
-      cat_usuarios_app: limpiarCuenta(e.cat_usuarios_app?.[0]),
-    }));
-  }
+async listarTecnicos() {
+  const cuentas = await this.prisma.cat_usuarios_app.findMany({
+    where: { perfil: { in: PERFILES_TECNICO }, activo: true },
+    include: { cat_empleados: true },
+    orderBy: { cat_empleados: { nombre: 'asc' } },
+  });
 
-  async obtenerPorId(idEmpleado: string) {
-    const empleado = await this.prisma.cat_empleados.findUnique({
-      where: { idEmpleado },
-      include: { cat_usuarios_app: true },
+  return cuentas.map((c) => {
+    const { contrase_a, cat_empleados, ...resto } = c;
+    return { ...resto, cat_empleados };
+  });
+}
+
+  async obtenerPorId(idUsuarioApp: string) {
+    const usuario = await this.prisma.cat_usuarios_app.findUnique({
+      where: { idUsuarioApp },
+      include: { cat_empleados: true },
     });
-    if (!empleado) throw new NotFoundException('Empleado no encontrado');
-    return { ...empleado, cat_usuarios_app: limpiarCuenta(empleado.cat_usuarios_app?.[0]) };
+    if (!usuario) throw new NotFoundException('Empleado no encontrado');
+    return { ...usuario, cat_empleado: limpiarCuenta(usuario.cat_empleados?.[0]) };
   }
 
   async crear(dto: CrearEmpleadoDto, creadoPor: string) {
@@ -61,8 +62,10 @@ export class UsuariosService {
     }
 
     const idEmpleado = randomUUID();
-    const idUsuarioApp = randomUUID();
+    
+    // randomUUID();
     const ahora = new Date();
+    
 
     const [empleado, cuenta] = await this.prisma.$transaction([
       this.prisma.cat_empleados.create({
@@ -74,7 +77,7 @@ export class UsuariosService {
           idEmpresa: dto.idEmpresa,
           departamento: dto.departamento,
           puesto: dto.puesto,
-          idHorario: dto.idHorario,
+          //idHorario: dto.idHorario,
           activo: true, 
           fechaIngreso: ahora,
           quienModifica: creadoPor,
@@ -83,7 +86,7 @@ export class UsuariosService {
       }),
       this.prisma.cat_usuarios_app.create({
         data: {
-          idUsuarioApp,
+          idUsuarioApp:dto.idUsuarioApp,
           idEmpleado,
           useremail: dto.useremail,
           contrase_a: dto.password,
