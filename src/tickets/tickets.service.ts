@@ -266,6 +266,11 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
       idempresa: string;
       idtecnico?: string;
       tiporeparacion?: string;
+      areatrabajo?: string;
+      descripcion?: string;
+      fecha?: string | Date;
+      asunto_correo?: string;
+      favoritos?: string;
     },
     usuario: string,
   ) {
@@ -279,10 +284,11 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
 
     try {
       return await this.prisma.bin_ticket.create({
-        data: {
+       data: {
           idticket: randomUUID(),
           folio: '',
-          fecha: soloFecha,
+          // Si te mandan fecha desde el frontend la usas, sino usas la del servidor
+          fecha: campos.fecha ? new Date(campos.fecha) : soloFecha, 
           fechahora: ahora,
           idautobus: campos.idautobus,
           numeroeconomico,
@@ -297,12 +303,19 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
           idreporta: campos.idreporta,
           idtecnico: campos.idtecnico,
           tiporeparacion: campos.tiporeparacion,
+          areatrabajo: campos.areatrabajo,
           comentarios: campos.comentarios,
+          
+          // 👇 DEBES AGREGAR ESTOS PARA QUE PRISMA LOS GUARDE EN LA BD
+          descripcion: campos.descripcion,
+          asunto_correo: campos.asunto_correo,
+          favoritos: campos.favoritos,
+          
           idestado: ESTADO_ABIERTO_ID,
           idempresa: campos.idempresa,
           creadopor: usuario,
           fechacreacion: ahora,
-          imagenfalla1: [], // String[] — se llena después de subir archivos, si los hay
+          imagenfalla1: [],// String[] — se llena después de subir archivos, si los hay
         },
       });
     } catch (error) {
@@ -323,19 +336,29 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
   async crearTicket(dto: CrearTicketDto, usuario: string, files?: Array<Express.Multer.File>) {
     const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
 
-    const ticket = await this.crearTicketBase(
-      {
-        idautobus: dto.idautobus,
-        iddispositivo: dto.iddispositivo,
-        idfalla: dto.idfalla,
-        idcategoria: dto.idcategoria,
-        idprioridad: dto.idprioridad,
-        idreporta: dto.idreporta,
-        comentarios: dto.comentarios,
-        idempresa: idEmpresaFinal,
-      },
-      usuario,
-    );
+  const ticket = await this.crearTicketBase(
+  {
+    idautobus: dto.idautobus,
+    iddispositivo: dto.iddispositivo,
+    idfalla: dto.idfalla,
+    idcategoria: dto.idcategoria,
+    idprioridad: dto.idprioridad,
+    idreporta: dto.idreporta,
+    comentarios: dto.comentarios,
+    idempresa: idEmpresaFinal,
+    
+    // --- CAMPOS AGREGADOS ---
+    tiporeparacion: dto.tiporeparacion, 
+    areatrabajo: dto.areatrabajo,
+    descripcion: dto.descripcion,
+    idruta: dto.idruta,
+    idtecnico: dto.idtecnico,
+    fecha: dto.fecha,
+    asunto_correo: dto.asunto_correo,
+    favoritos: dto.favoritos
+  },
+  usuario,
+);
 
     if (files && files.length > 0) {
       const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
