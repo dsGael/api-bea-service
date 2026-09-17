@@ -192,23 +192,19 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
     return autobus?.numeroEconomico ?? undefined;
   }
 
-  private async resolverOperador(
-    numeroEconomico?: string,
-  ): Promise<{ idoperador?: string; nombreoperador?: string }> {
-    if (!numeroEconomico) return {};
+private async resolverOperadorPorAsignacion(numeroeconomico: string | null | undefined) {
+  if (!numeroeconomico) return { idoperador: undefined, nombreoperador: undefined };
 
-    const { inicioDia, finDia } = this.rangoHoy();
+  const asignacion = await this.prisma.asignacion_diaria.findFirst({
+    where: { UNIDAD: numeroeconomico },
+    orderBy: { FECHA: 'desc' },
+  });
 
-    const asignacion = await this.prisma.asignacion_diaria.findFirst({
-      where: { UNIDAD: numeroEconomico, FECHA: { gte: inicioDia, lte: finDia } },
-      select: { OPERADOR: true },
-    });
-
-    return {
-      idoperador: asignacion?.OPERADOR ?? undefined,
-      nombreoperador: asignacion?.OPERADOR ?? undefined,
-    };
-  }
+  return {
+    idoperador: asignacion?.OPERADOR ?? undefined,
+    nombreoperador: asignacion?.NOMBRE_COMPLETO ?? undefined,
+  };
+}
 
   private async resolverIdDispositivoT(iddispositivo?: string): Promise<string | undefined> {
     if (!iddispositivo) return undefined;
@@ -260,6 +256,7 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
       iddispositivo?: string;
       idfalla?: string;
       idcategoria?: string;
+      idusuario?: string;
       idprioridad?: string;
       idreporta?: string;
       comentarios?: string;
@@ -279,7 +276,7 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
 
     const numeroeconomico = await this.resolverNumeroEconomico(campos.idautobus);
     const idRutaFinal = await this.resolverIdRuta(campos.idruta, numeroeconomico);
-    const { idoperador, nombreoperador } = await this.resolverOperador(numeroeconomico);
+    const { idoperador, nombreoperador } = await this.resolverOperadorPorAsignacion(numeroeconomico);
     const iddispositivot = await this.resolverIdDispositivoT(campos.iddispositivo);
 
     try {
@@ -293,6 +290,7 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
           idautobus: campos.idautobus,
           numeroeconomico,
           idruta: idRutaFinal,
+          idusuario: campos.idusuario,
           idoperador,
           nombreoperador,
           iddispositivo: campos.iddispositivo,
@@ -316,6 +314,7 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
           creadopor: usuario,
           fechacreacion: ahora,
           imagenfalla1: [],// String[] — se llena después de subir archivos, si los hay
+          video:[],// String[] — se llena después de subir archivos, si los hay
         },
       });
     } catch (error) {
@@ -328,86 +327,116 @@ async listarTodos(query: ListarTicketsQueryDto, usuario: UsuarioActual) {
     }
   }
 
+  private separarArchivosPorTipo(files: Array<Express.Multer.File>) {
+  const imagenes = files.filter((f) => f.mimetype.startsWith('image/'));
+  const videos = files.filter((f) => f.mimetype.startsWith('video/'));
+  return { imagenes, videos };
+}
   /**
    * Crea el ticket normal y, si vienen archivos, los sube a MinIO y guarda
    * las URLs en `imagenfalla1`. La subida ocurre DESPUÉS de crear el ticket
    * porque necesita el idticket para armar la ruta del bucket.
    */
-  async crearTicket(dto: CrearTicketDto, usuario: string, files?: Array<Express.Multer.File>) {
-    const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
+async crearTicket(dto: CrearTicketDto, usuario: string, files?: Array<Express.Multer.File>) {
+  const idEmpresaFinal = await this.resolverIdEmpresa(dto.idempresa, dto.idreporta);
 
   const ticket = await this.crearTicketBase(
-  {
-    idautobus: dto.idautobus,
-    iddispositivo: dto.iddispositivo,
-    idfalla: dto.idfalla,
-    idcategoria: dto.idcategoria,
-    idprioridad: dto.idprioridad,
-    idreporta: dto.idreporta,
-    comentarios: dto.comentarios,
-    idempresa: idEmpresaFinal,
-    
-    // --- CAMPOS AGREGADOS ---
-    tiporeparacion: dto.tiporeparacion, 
-    areatrabajo: dto.areatrabajo,
-    descripcion: dto.descripcion,
-    idruta: dto.idruta,
-    idtecnico: dto.idtecnico,
-    fecha: dto.fecha,
-    asunto_correo: dto.asunto_correo,
-    favoritos: dto.favoritos
-  },
-  usuario,
-);
+    {
+      idautobus: dto.idautobus,
+      iddispositivo: dto.iddispositivo,
+      idfalla: dto.idfalla,
+      idusuario: usuario,
+      idcategoria: dto.idcategoria,
+      idprioridad: dto.idprioridad,
+      idreporta: dto.idreporta,
+      comentarios: dto.comentarios,
+      idempresa: idEmpresaFinal,
+      tiporeparacion: dto.tiporeparacion,
+      areatrabajo: dto.areatrabajo,
+      descripcion: dto.descripcion,
+      idruta: dto.idruta,
+      idtecnico: dto.idtecnico,
+      fecha: dto.fecha,
+      asunto_correo: dto.asunto_correo,
+      favoritos: dto.favoritos,
+    },
+    usuario,
+  );
 
-    if (files && files.length > 0) {
-      const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
-      const urls = await this.subirArchivos(files, `Fallas/${numeroeconomico}/${ticket.idticket}`);
-      return this.prisma.bin_ticket.update({
-        where: { idticket: ticket.idticket },
-        data: { imagenfalla1: urls },
-      });
+  if (files && files.length > 0) {
+    const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+    const { imagenes, videos } = this.separarArchivosPorTipo(files);
+
+    const data: { imagenfalla1?: string[]; video?: string[] } = {};
+
+    if (imagenes.length > 0) {
+      data.imagenfalla1 = await this.subirArchivos(imagenes, `Fallas/${numeroeconomico}/${ticket.idticket}`);
     }
 
-    return ticket;
+    if (videos.length > 0) {
+      data.video = await this.subirArchivos(videos, `Fallas/${numeroeconomico}/${ticket.idticket}`);
+    }
+
+    if (Object.keys(data).length > 0) {
+      return this.prisma.bin_ticket.update({
+        where: { idticket: ticket.idticket },
+        data,
+      });
+    }
   }
+
+  return ticket;
+}
 
   /**
    * Crea el folio de mantenimiento preventivo (auto-asignado al técnico que lo crea).
    * Igual que crearTicket, sube evidencia de falla si viene.
    */
-  async crearFolioMantenimiento(
-    dto: CrearFolioMantenimientoDto,
-    idUsuarioApp: string,
-    usuario: string,
-    files?: Array<Express.Multer.File>,
-  ) {
-    const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idUsuarioApp);
+ async crearFolioMantenimiento(
+  dto: CrearFolioMantenimientoDto,
+  idUsuarioApp: string,
+  usuario: string,
+  files?: Array<Express.Multer.File>,
+) {
+  const idEmpresaFinal = await this.resolverIdEmpresa(undefined, undefined, idUsuarioApp);
 
-    const ticket = await this.crearTicketBase(
-      {
-        idautobus: dto.idautobus,
-        iddispositivo: dto.iddispositivo,
-        idcategoria: dto.idcategoria,
-        comentarios: dto.comentarios,
-        idempresa: idEmpresaFinal,
-        idtecnico: idUsuarioApp,
-        tiporeparacion: TIPO_MANTENIMIENTO_ID,
-      },
-      usuario,
-    );
+  const ticket = await this.crearTicketBase(
+    {
+      idautobus: dto.idautobus,
+      iddispositivo: dto.iddispositivo,
+      idcategoria: dto.idcategoria,
+      comentarios: dto.comentarios,
+      idempresa: idEmpresaFinal,
+      idtecnico: idUsuarioApp,
+      tiporeparacion: TIPO_MANTENIMIENTO_ID,
+    },
+    usuario,
+  );
 
-    if (files && files.length > 0) {
-      const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
-      const urls = await this.subirArchivos(files, `Fallas/${numeroeconomico}/${ticket.idticket}`);
-      return this.prisma.bin_ticket.update({
-        where: { idticket: ticket.idticket },
-        data: { imagenfalla1: urls },
-      });
+  if (files && files.length > 0) {
+    const numeroeconomico = ticket.numeroeconomico ?? 'sin-unidad';
+    const { imagenes, videos } = this.separarArchivosPorTipo(files);
+
+    const data: { imagenfalla1?: string[]; video?: string[] } = {};
+
+    if (imagenes.length > 0) {
+      data.imagenfalla1 = await this.subirArchivos(imagenes, `Fallas/${numeroeconomico}/${ticket.idticket}`);
     }
 
-    return ticket;
+    if (videos.length > 0) {
+      data.video = await this.subirArchivos(videos, `Fallas/${numeroeconomico}/${ticket.idticket}`);
+    }
+
+    if (Object.keys(data).length > 0) {
+      return this.prisma.bin_ticket.update({
+        where: { idticket: ticket.idticket },
+        data,
+      });
+    }
   }
+
+  return ticket;
+}
 
   /**
    * Permite editar un ticket abierto: actualiza campos y/o agrega más

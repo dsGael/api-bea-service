@@ -584,6 +584,12 @@ async listarFallasPorTipoDispositivo(idDispositivoT: string) {
   });
 }
   
+async obtenerAsignacionReciente(numeroEconomico: string) {
+  return this.prisma.asignacion_diaria.findFirst({
+    where: { UNIDAD: numeroEconomico },
+    orderBy: { FECHA: 'desc' },
+  });
+}
 
   
 }

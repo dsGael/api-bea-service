@@ -389,5 +389,10 @@ export class CatalogosController {
     return this.catalogosService.listarFallasPorTipoDispositivo(tipo);
   }
 
+  @Get('asignacion-diaria/autobus/:numeroEconomico/reciente')
+@ApiOperation({ summary: 'Última asignación diaria registrada para una unidad' })
+obtenerAsignacionReciente(@Param('numeroEconomico') numeroEconomico: string) {
+  return this.catalogosService.obtenerAsignacionReciente(numeroEconomico);
+}
 
 }
