@@ -470,6 +470,7 @@ async crearTicket(dto: CrearTicketDto, usuario: string, files?: Array<Express.Mu
         ...(dto.comentarios && { comentarios: dto.comentarios }),
         ...(nuevasUrls.length > 0 && {
           imagenfalla1: { push: nuevasUrls }, // append, no reemplaza
+          video: { push: nuevasUrls.filter((url) => url.endsWith('.mp4') || url.endsWith('.mkv')) }, // append, no reemplaza
         }),
         modificadopor: usuario,
         fechamodificacion: new Date(),
