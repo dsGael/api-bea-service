@@ -231,14 +231,17 @@ private async resolverOperadorPorAsignacion(numeroeconomico: string | null | und
    * Sube un lote de archivos a MinIO bajo una carpeta consistente y
    * devuelve el arreglo de URLs resultante. Reutilizable para falla y reparación.
    */
-  private async subirArchivos(
+private async subirArchivos(
     files: Array<Express.Multer.File> | undefined,
     carpeta: string, // ej: `Fallas/${unidad}/${idticket}` o `Reparaciones/${unidad}/${idticket}`
   ): Promise<string[]> {
     if (!files || files.length === 0) return [];
 
     const promesas = files.map((file) => {
-      const key = `${carpeta}/${Date.now()}-${file.originalname}`;
+      let nombreLimpio = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      nombreLimpio = nombreLimpio.replace(/_+/g, '_');
+      const key = `${carpeta}/${Date.now()}-${nombreLimpio}`;
+      
       return this.minioService.uploadFile('app-media', key, file.buffer, file.mimetype);
     });
 

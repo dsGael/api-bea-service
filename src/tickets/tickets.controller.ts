@@ -55,7 +55,11 @@ export class TicketsController {
 
   @Post()
   @Roles('superadmin', 'admin', 'mesacontrol', 'capturista')
-  @UseInterceptors(FilesInterceptor('evidenciasFalla'))
+  @UseInterceptors(
+  FilesInterceptor('evidenciasFalla', 10, {
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB por archivo, ajusta según lo que definas
+  }),
+)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Crea un folio normal, con fotos opcionales de la falla' })
   crear(
