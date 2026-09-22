@@ -69,16 +69,32 @@ export class MovimientosService {
     });
   }
 
-  async listarMovimientos(idAlmacen?: string, idDispositivo?: string) {
-    return this.prisma.rel_movimiento.findMany({
-      where: {
-        ...(idAlmacen && {
-          OR: [{ idAlmacenOrigen: idAlmacen }, { idAlmacenDestino: idAlmacen }],
-        }),
-        ...(idDispositivo && { idDispositivo }),
-      },
-      orderBy: { fechaCreacion: 'desc' },
-      take: 100,
-    });
-  }
+async listarMovimientos(idAlmacen?: string, idDispositivo?: string) {
+  const movimientos = await this.prisma.rel_movimiento.findMany({
+    where: {
+      ...(idAlmacen && {
+        OR: [{ idAlmacenOrigen: idAlmacen }, { idAlmacenDestino: idAlmacen }],
+      }),
+      ...(idDispositivo && { idDispositivo }),
+    },
+    include: {
+      cat_almacen_rel_movimiento_idAlmacenOrigenTocat_almacen: true,
+      cat_almacen_rel_movimiento_idAlmacenDestinoTocat_almacen: true,
+      cat_dispositivo_t: true,
+    },
+    orderBy: { fechaCreacion: 'desc' },
+    take: 100,
+  });
+
+  return movimientos.map((m) => {
+    const {
+      cat_almacen_rel_movimiento_idAlmacenOrigenTocat_almacen: almacenOrigen,
+      cat_almacen_rel_movimiento_idAlmacenDestinoTocat_almacen: almacenDestino,
+      cat_dispositivo_t: dispositivo,
+      ...resto
+    } = m;
+
+    return { ...resto, almacenOrigen, almacenDestino, dispositivo };
+  });
+}
 }
