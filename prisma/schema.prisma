@@ -184,6 +184,9 @@ model cat_almacen {
   fechaModificacion                                           DateTime?        @db.Timestamp(6)
   rel_movimiento_rel_movimiento_idAlmacenDestinoTocat_almacen rel_movimiento[] @relation("rel_movimiento_idAlmacenDestinoTocat_almacen")
   rel_movimiento_rel_movimiento_idAlmacenOrigenTocat_almacen  rel_movimiento[] @relation("rel_movimiento_idAlmacenOrigenTocat_almacen")
+
+  cat_dispositivo_cat_dispositivo_idAlmacenActualTocat_almacen   cat_dispositivo[] @relation("cat_dispositivo_idAlmacenActualTocat_almacen")
+  cat_dispositivo_cat_dispositivo_idAlmacenAnteriorTocat_almacen cat_dispositivo[] @relation("cat_dispositivo_idAlmacenAnteriorTocat_almacen")
 }
 
 model cat_autobus {
@@ -313,7 +316,14 @@ model cat_dispositivo {
   bin_ticket_detail bin_ticket_detail[]
   cat_dispositivo_t cat_dispositivo_t?  @relation(fields: [idDispositivoT], references: [idDispositivoT], onDelete: NoAction, onUpdate: NoAction, map: "cat_dispositivo_cat_dispositivo_t_fk")
   lab_reparacion    lab_reparacion[]
+
+  cat_almacen_cat_dispositivo_idAlmacenActualTocat_almacen   cat_almacen? @relation("cat_dispositivo_idAlmacenActualTocat_almacen", fields: [idAlmacenActual], references: [idAlmacen], onDelete: NoAction, onUpdate: NoAction, map: "cat_dispositivo_almacen_actual_fk")
+  cat_almacen_cat_dispositivo_idAlmacenAnteriorTocat_almacen cat_almacen? @relation("cat_dispositivo_idAlmacenAnteriorTocat_almacen", fields: [idAlmacenAnterior], references: [idAlmacen], onDelete: NoAction, onUpdate: NoAction, map: "cat_dispositivo_almacen_anterior_fk")
+
+  @@index([idAlmacenActual], map: "fki_cat_dispositivo_almacen_actual")
+  @@index([idAlmacenAnterior], map: "fki_cat_dispositivo_almacen_anterior")
 }
+
 
 model cat_dispositivo_t {
   idDispositivoT      String                @id @db.VarChar(50)

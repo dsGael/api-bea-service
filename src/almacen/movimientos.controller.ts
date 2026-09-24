@@ -17,7 +17,8 @@ export class MovimientosController {
   @Post()
   @Roles('almacen', 'admin', 'superadmin')
   registrar(@Body() dto: RegistrarMovimientoDto, @CurrentUser() user: any) {
-    return this.movimientosService.registrarMovimiento(dto, user.useremail);
+    console.log('Registrar movimiento:', dto, 'Usuario:', user);
+    return this.movimientosService.registrarMovimiento(dto, user.idEmpleado);
   }
 
   @Get()
